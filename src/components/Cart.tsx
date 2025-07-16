@@ -186,6 +186,14 @@ const Cart: React.FC = () => {
                   className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
+                <div className="mb-4 p-4 bg-yellow-100 border-l-4 border-yellow-400 text-yellow-800 text-sm rounded shadow-sm">
+                  <strong className="block font-semibold mb-1">Atenção:</strong>
+                  Ao clicar em{" "}
+                  <span className="font-semibold">Finalizar Compra</span>, o QR
+                  Code pode levar alguns minutos para ser gerado.
+                  <br />
+                  Por favor, aguarde até que ele apareça.
+                </div>
               </div>
             )}
           </div>

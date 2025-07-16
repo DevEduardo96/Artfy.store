@@ -3,6 +3,7 @@ import Header from "./components/Header";
 import Hero from "./components/Hero";
 import SupportPage from "./components/SupportPage";
 import EbooksPage from "./pages/EbooksPage";
+import LoginPage from "./components/LoginPage";
 import CategoryFilter from "./components/CategoryFilter";
 import ProductCard from "./components/ProductCard";
 import Cart from "./components/Cart";
@@ -63,6 +64,8 @@ function App() {
           <SupportPage />
         ) : currentPage === "ebooks" ? (
           <EbooksPage products={products} />
+        ) : currentPage === "login" ? (
+          <LoginPage onClose={() => setCurrentPage("home")} />
         ) : null}
 
         <Cart />

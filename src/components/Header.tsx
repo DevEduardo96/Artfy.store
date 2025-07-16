@@ -46,7 +46,6 @@ const Header: React.FC<HeaderProps> = ({
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
             <button
-              type="button"
               onClick={() => onPageChange?.("home")}
               className={`transition-colors ${
                 currentPage === "home"
@@ -56,15 +55,13 @@ const Header: React.FC<HeaderProps> = ({
             >
               Início
             </button>
-            <button
-              type="button"
-              onClick={(e) => e.preventDefault()}
+            <a
+              href="#"
               className="text-gray-700 hover:text-blue-600 transition-colors"
             >
               Cursos
-            </button>
+            </a>
             <button
-              type="button"
               onClick={() => onPageChange?.("ebooks")}
               className={`transition-colors ${
                 currentPage === "ebooks"
@@ -74,15 +71,13 @@ const Header: React.FC<HeaderProps> = ({
             >
               E-books
             </button>
-            <button
-              type="button"
-              onClick={(e) => e.preventDefault()}
+            <a
+              href="#"
               className="text-gray-700 hover:text-blue-600 transition-colors"
             >
               Templates
-            </button>
+            </a>
             <button
-              type="button"
               onClick={() => onPageChange?.("support")}
               className={`transition-colors ${
                 currentPage === "support"
@@ -96,25 +91,18 @@ const Header: React.FC<HeaderProps> = ({
 
           {/* Action Buttons */}
           <div className="flex items-center space-x-4">
-            <button
-              type="button"
-              className="p-2 text-gray-700 hover:text-red-600 transition-colors"
-              aria-label="Favoritos"
-            >
+            <button className="p-2 text-gray-700 hover:text-red-600 transition-colors">
               <Heart className="h-6 w-6" />
             </button>
             <button
-              type="button"
+              onClick={() => onPageChange?.("login")}
               className="p-2 text-gray-700 hover:text-blue-600 transition-colors"
-              aria-label="Conta"
             >
               <User className="h-6 w-6" />
             </button>
             <button
-              type="button"
               onClick={openCart}
               className="relative p-2 text-gray-700 hover:text-blue-600 transition-colors"
-              aria-label="Abrir carrinho"
             >
               <ShoppingCart className="h-6 w-6" />
               {state.items.length > 0 && (
@@ -127,10 +115,8 @@ const Header: React.FC<HeaderProps> = ({
               )}
             </button>
             <button
-              type="button"
-              onClick={toggleMenu}
               className="md:hidden p-2 text-gray-700"
-              aria-label={isMenuOpen ? "Fechar menu" : "Abrir menu"}
+              onClick={toggleMenu}
             >
               {isMenuOpen ? (
                 <X className="h-6 w-6" />
@@ -156,7 +142,6 @@ const Header: React.FC<HeaderProps> = ({
             </div>
             <nav className="space-y-2">
               <button
-                type="button"
                 onClick={() => {
                   onPageChange?.("home");
                   setIsMenuOpen(false);
@@ -169,18 +154,13 @@ const Header: React.FC<HeaderProps> = ({
               >
                 Início
               </button>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setIsMenuOpen(false);
-                }}
+              <a
+                href="#"
                 className="block py-2 text-gray-700 hover:text-blue-600 transition-colors"
               >
                 Cursos
-              </button>
+              </a>
               <button
-                type="button"
                 onClick={() => {
                   onPageChange?.("ebooks");
                   setIsMenuOpen(false);
@@ -193,18 +173,13 @@ const Header: React.FC<HeaderProps> = ({
               >
                 E-books
               </button>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setIsMenuOpen(false);
-                }}
+              <a
+                href="#"
                 className="block py-2 text-gray-700 hover:text-blue-600 transition-colors"
               >
                 Templates
-              </button>
+              </a>
               <button
-                type="button"
                 onClick={() => {
                   onPageChange?.("support");
                   setIsMenuOpen(false);
