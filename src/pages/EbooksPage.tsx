@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Product } from "../types";
 import { useCart } from "../context/CartContext";
+import Footer from "../components/Footer";
 
 interface EbooksPageProps {
   products: Product[];
@@ -519,6 +520,7 @@ const EbooksPage: React.FC<EbooksPageProps> = ({ products }) => {
           </div>
         </section>
       </div>
+      <Footer />
     </div>
   );
 };

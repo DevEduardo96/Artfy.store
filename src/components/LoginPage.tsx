@@ -15,6 +15,7 @@ import {
   Smartphone,
   Key,
 } from "lucide-react";
+import Footer from "./Footer";
 
 interface LoginPageProps {
   onClose?: () => void;

@@ -1,5 +1,13 @@
-import React from 'react';
-import { Mail, Phone, MapPin, Facebook, Twitter, Instagram, Youtube } from 'lucide-react';
+import React from "react";
+import {
+  Mail,
+  Phone,
+  MapPin,
+  Facebook,
+  Twitter,
+  Instagram,
+  Youtube,
+} from "lucide-react";
 
 const Footer: React.FC = () => {
   return (
@@ -15,19 +23,32 @@ const Footer: React.FC = () => {
               <span className="text-xl font-bold">DigitalStore</span>
             </div>
             <p className="text-gray-400">
-              Sua loja de produtos digitais premium. Cursos, e-books e templates para acelerar seu crescimento.
+              Sua loja de produtos digitais premium. Cursos, e-books e templates
+              para acelerar seu crescimento.
             </p>
             <div className="flex space-x-4">
-              <a href="#" className="text-gray-400 hover:text-blue-400 transition-colors">
+              <a
+                href="#"
+                className="text-gray-400 hover:text-blue-400 transition-colors"
+              >
                 <Facebook className="h-5 w-5" />
               </a>
-              <a href="#" className="text-gray-400 hover:text-blue-400 transition-colors">
+              <a
+                href="#"
+                className="text-gray-400 hover:text-blue-400 transition-colors"
+              >
                 <Twitter className="h-5 w-5" />
               </a>
-              <a href="#" className="text-gray-400 hover:text-blue-400 transition-colors">
+              <a
+                href="#"
+                className="text-gray-400 hover:text-blue-400 transition-colors"
+              >
                 <Instagram className="h-5 w-5" />
               </a>
-              <a href="#" className="text-gray-400 hover:text-blue-400 transition-colors">
+              <a
+                href="#"
+                className="text-gray-400 hover:text-blue-400 transition-colors"
+              >
                 <Youtube className="h-5 w-5" />
               </a>
             </div>
@@ -37,10 +58,26 @@ const Footer: React.FC = () => {
           <div>
             <h3 className="font-semibold mb-4">Links Rápidos</h3>
             <ul className="space-y-2 text-gray-400">
-              <li><a href="#" className="hover:text-white transition-colors">Sobre Nós</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Produtos</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Blog</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Contato</a></li>
+              <li>
+                <a href="#" className="hover:text-white transition-colors">
+                  Sobre Nós
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-white transition-colors">
+                  Produtos
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-white transition-colors">
+                  Blog
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-white transition-colors">
+                  Contato
+                </a>
+              </li>
             </ul>
           </div>
 
@@ -48,10 +85,26 @@ const Footer: React.FC = () => {
           <div>
             <h3 className="font-semibold mb-4">Categorias</h3>
             <ul className="space-y-2 text-gray-400">
-              <li><a href="#" className="hover:text-white transition-colors">Programação</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Design</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Marketing</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Templates</a></li>
+              <li>
+                <a href="#" className="hover:text-white transition-colors">
+                  Programação
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-white transition-colors">
+                  Design
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-white transition-colors">
+                  Marketing
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-white transition-colors">
+                  Templates
+                </a>
+              </li>
             </ul>
           </div>
 
@@ -76,7 +129,7 @@ const Footer: React.FC = () => {
         </div>
 
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-          <p>&copy; 2024 DigitalStore. Todos os direitos reservados.</p>
+          <p>&copy; 2025 Artfy Store. Todos os direitos reservados.</p>
         </div>
       </div>
     </footer>

@@ -91,15 +91,25 @@ const Header: React.FC<HeaderProps> = ({
 
           {/* Action Buttons */}
           <div className="flex items-center space-x-4">
-            <button className="p-2 text-gray-700 hover:text-red-600 transition-colors">
+            <button
+              onClick={() => onPageChange?.("favorites")}
+              className={`p-2 transition-colors ${
+                currentPage === "favorites"
+                  ? "text-red-600"
+                  : "text-gray-700 hover:text-red-600"
+              }`}
+              aria-label="Ver favoritos"
+            >
               <Heart className="h-6 w-6" />
             </button>
+
             <button
               onClick={() => onPageChange?.("login")}
               className="p-2 text-gray-700 hover:text-blue-600 transition-colors"
             >
               <User className="h-6 w-6" />
             </button>
+
             <button
               onClick={openCart}
               className="relative p-2 text-gray-700 hover:text-blue-600 transition-colors"
@@ -114,6 +124,7 @@ const Header: React.FC<HeaderProps> = ({
                 </span>
               )}
             </button>
+
             <button
               className="md:hidden p-2 text-gray-700"
               onClick={toggleMenu}
@@ -191,6 +202,19 @@ const Header: React.FC<HeaderProps> = ({
                 }`}
               >
                 Suporte
+              </button>
+              <button
+                onClick={() => {
+                  onPageChange?.("favorites");
+                  setIsMenuOpen(false);
+                }}
+                className={`block py-2 w-full text-left transition-colors ${
+                  currentPage === "favorites"
+                    ? "text-red-600"
+                    : "text-gray-700 hover:text-red-600"
+                }`}
+              >
+                Favoritos
               </button>
             </nav>
           </div>

@@ -15,6 +15,7 @@ import {
   FileText,
   Users,
 } from "lucide-react";
+import Footer from "./Footer";
 
 interface FAQItem {
   id: string;
@@ -475,6 +476,7 @@ const SupportPage: React.FC = () => {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 };

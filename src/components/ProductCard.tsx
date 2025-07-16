@@ -1,26 +1,30 @@
-import React from 'react';
-import { Star, Download, Heart, ShoppingCart } from 'lucide-react';
-import { Product } from '../types';
-import { useCart } from '../context/CartContext';
+import React from "react";
+import { Star, Download, Heart, ShoppingCart } from "lucide-react";
+import { Product } from "../types";
+import { useCart } from "../context/CartContext";
+import { useFavorites } from "../context/FavoritesContext";
 
 interface ProductCardProps {
   product: Product;
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
-  const { dispatch } = useCart();
+  const { dispatch: cartDispatch } = useCart();
+  const { isFavorite, toggleFavorite } = useFavorites();
 
   const addToCart = () => {
-    dispatch({ type: 'ADD_ITEM', payload: product });
-    dispatch({ type: 'OPEN_CART' });
+    cartDispatch({ type: "ADD_ITEM", payload: product });
+    cartDispatch({ type: "OPEN_CART" });
   };
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
     }).format(price);
   };
+
+  const favorite = isFavorite(product.id);
 
   return (
     <div className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group">
@@ -31,20 +35,39 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
         />
         <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <button className="p-2 bg-white rounded-full shadow-md hover:bg-red-50 transition-colors">
-            <Heart className="h-4 w-4 text-gray-600 hover:text-red-500" />
+          <button
+            onClick={() => toggleFavorite(product)}
+            className="p-2 bg-white rounded-full shadow-md hover:bg-red-50 transition-colors"
+            aria-label={
+              favorite ? "Remover dos favoritos" : "Adicionar aos favoritos"
+            }
+          >
+            <Heart
+              className={`h-4 w-4 transition-colors ${
+                favorite
+                  ? "fill-red-500 text-red-500"
+                  : "stroke-current text-gray-600"
+              }`}
+            />
           </button>
         </div>
         {product.originalPrice && (
           <div className="absolute top-3 left-3 bg-red-500 text-white px-2 py-1 rounded-md text-sm font-medium">
-            {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
+            {Math.round(
+              ((product.originalPrice - product.price) /
+                product.originalPrice) *
+                100
+            )}
+            % OFF
           </div>
         )}
       </div>
 
       <div className="p-5">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm text-blue-600 font-medium">{product.category}</span>
+          <span className="text-sm text-blue-600 font-medium">
+            {product.category}
+          </span>
           <div className="flex items-center space-x-1">
             <Star className="h-4 w-4 text-yellow-400 fill-current" />
             <span className="text-sm text-gray-600">{product.rating}</span>
