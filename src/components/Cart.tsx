@@ -1,14 +1,15 @@
 import React, { useState } from "react";
-import { X, Plus, Minus, Trash2, ShoppingBag, Clipboard } from "lucide-react";
+import { X, Plus, Minus, Trash2, ShoppingBag, Copy } from "lucide-react";
 import { useCart } from "../context/CartContext";
 
 const Cart: React.FC = () => {
   const { state, dispatch } = useCart();
+
+  const [email, setEmail] = useState("");
   const [qrCode, setQrCode] = useState<string | null>(null);
-  const [qrCodeText, setQrCodeText] = useState<string | null>(null);
   const [ticketUrl, setTicketUrl] = useState<string | null>(null);
+  const [pixCode, setPixCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   const closeCart = () => dispatch({ type: "CLOSE_CART" });
 
@@ -31,7 +32,17 @@ const Cart: React.FC = () => {
     }).format(price);
   };
 
+  const validateEmail = (email: string) => {
+    // Regex simples para validar e-mail
+    return /\S+@\S+\.\S+/.test(email);
+  };
+
   const finalizePurchase = async () => {
+    if (!validateEmail(email)) {
+      alert("Por favor, insira um e-mail válido.");
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await fetch(
@@ -41,19 +52,23 @@ const Cart: React.FC = () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             carrinho: state.items,
-            nomeCliente: "Cliente Teste",
-            email: "cliente@email.com",
+            nomeCliente: "Cliente Teste", // Você pode adicionar campo para nome também
+            email,
             total: state.total,
           }),
         }
       );
 
+      if (!response.ok) {
+        throw new Error("Erro na requisição");
+      }
+
       const data = await response.json();
 
       if (data.qr_code_base64) {
         setQrCode(data.qr_code_base64);
-        setQrCodeText(data.qr_code);
         setTicketUrl(data.ticket_url);
+        setPixCode(data.qr_code); // código pix para copiar
       } else {
         alert("Erro ao gerar QR Code");
       }
@@ -65,11 +80,10 @@ const Cart: React.FC = () => {
     }
   };
 
-  const copyToClipboard = () => {
-    if (qrCodeText) {
-      navigator.clipboard.writeText(qrCodeText);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 3000);
+  const copyPixCodeToClipboard = () => {
+    if (pixCode) {
+      navigator.clipboard.writeText(pixCode);
+      alert("Código Pix copiado para a área de transferência!");
     }
   };
 
@@ -153,6 +167,27 @@ const Cart: React.FC = () => {
                 ))}
               </div>
             )}
+
+            {/* Campo para inserir e-mail */}
+            {state.items.length > 0 && (
+              <div className="mt-6">
+                <label
+                  htmlFor="email"
+                  className="block mb-1 font-semibold text-gray-700"
+                >
+                  Seu e-mail para receber o link de download:
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  placeholder="exemplo@dominio.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+            )}
           </div>
 
           {/* Footer */}
@@ -187,31 +222,31 @@ const Cart: React.FC = () => {
               <X className="h-5 w-5" />
             </button>
             <h2 className="text-lg font-bold mb-4 text-gray-800">
-              Escaneie ou copie o código Pix
+              Escaneie para pagar com Pix
             </h2>
             <img
               src={`data:image/png;base64,${qrCode}`}
               alt="QR Code Pix"
               className="mx-auto mb-4"
             />
-            <button
-              onClick={copyToClipboard}
-              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-all"
-            >
-              <Clipboard className="h-4 w-4" />
-              {copied ? "Código Copiado!" : "Copiar código Pix"}
-            </button>
             {ticketUrl && (
-              <div className="mt-3">
-                <a
-                  href={ticketUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 underline text-sm"
-                >
-                  Abrir no app do banco
-                </a>
-              </div>
+              <a
+                href={ticketUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 underline text-sm mb-4 block"
+              >
+                Abrir no app do banco
+              </a>
+            )}
+
+            {pixCode && (
+              <button
+                onClick={copyPixCodeToClipboard}
+                className="flex items-center justify-center mx-auto bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-semibold transition"
+              >
+                <Copy className="mr-2 h-4 w-4" /> Copiar código Pix
+              </button>
             )}
           </div>
         </div>
