@@ -2,7 +2,15 @@ import React, { useState } from "react";
 import { Search, ShoppingCart, Menu, X, User, Heart } from "lucide-react";
 import { useCart } from "../context/CartContext";
 
-const Header: React.FC = () => {
+interface HeaderProps {
+  currentPage?: string;
+  onPageChange?: (page: string) => void;
+}
+
+const Header: React.FC<HeaderProps> = ({
+  currentPage = "home",
+  onPageChange,
+}) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { state, dispatch } = useCart();
 
@@ -37,6 +45,16 @@ const Header: React.FC = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
+            <button
+              onClick={() => onPageChange?.("home")}
+              className={`transition-colors ${
+                currentPage === "home"
+                  ? "text-blue-600"
+                  : "text-gray-700 hover:text-blue-600"
+              }`}
+            >
+              Início
+            </button>
             <a
               href="#"
               className="text-gray-700 hover:text-blue-600 transition-colors"
@@ -55,12 +73,16 @@ const Header: React.FC = () => {
             >
               Templates
             </a>
-            <a
-              href="#"
-              className="text-gray-700 hover:text-blue-600 transition-colors"
+            <button
+              onClick={() => onPageChange?.("support")}
+              className={`transition-colors ${
+                currentPage === "support"
+                  ? "text-blue-600"
+                  : "text-gray-700 hover:text-blue-600"
+              }`}
             >
               Suporte
-            </a>
+            </button>
           </nav>
 
           {/* Action Buttons */}
@@ -112,6 +134,19 @@ const Header: React.FC = () => {
               </div>
             </div>
             <nav className="space-y-2">
+              <button
+                onClick={() => {
+                  onPageChange?.("home");
+                  setIsMenuOpen(false);
+                }}
+                className={`block py-2 w-full text-left transition-colors ${
+                  currentPage === "home"
+                    ? "text-blue-600"
+                    : "text-gray-700 hover:text-blue-600"
+                }`}
+              >
+                Início
+              </button>
               <a
                 href="#"
                 className="block py-2 text-gray-700 hover:text-blue-600 transition-colors"
@@ -130,12 +165,19 @@ const Header: React.FC = () => {
               >
                 Templates
               </a>
-              <a
-                href="#"
-                className="block py-2 text-gray-700 hover:text-blue-600 transition-colors"
+              <button
+                onClick={() => {
+                  onPageChange?.("support");
+                  setIsMenuOpen(false);
+                }}
+                className={`block py-2 w-full text-left transition-colors ${
+                  currentPage === "support"
+                    ? "text-blue-600"
+                    : "text-gray-700 hover:text-blue-600"
+                }`}
               >
                 Suporte
-              </a>
+              </button>
             </nav>
           </div>
         )}
