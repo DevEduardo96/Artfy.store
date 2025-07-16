@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import Header from "./components/Header";
 import Hero from "./components/Hero";
 import SupportPage from "./components/SupportPage";
+import EbooksPage from "./pages/EbooksPage";
 import CategoryFilter from "./components/CategoryFilter";
 import ProductCard from "./components/ProductCard";
 import Cart from "./components/Cart";
@@ -60,6 +61,8 @@ function App() {
           </>
         ) : currentPage === "support" ? (
           <SupportPage />
+        ) : currentPage === "ebooks" ? (
+          <EbooksPage products={products} />
         ) : null}
 
         <Cart />
