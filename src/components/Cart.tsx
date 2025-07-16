@@ -33,7 +33,7 @@ const Cart: React.FC = () => {
     setLoading(true);
     try {
       const response = await fetch(
-        "https://seu-backend.onrender.com/criar-pagamento",
+        "https://servidor-loja-digital.onrender.com",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
