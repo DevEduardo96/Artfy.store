@@ -33,13 +33,13 @@ const Cart: React.FC = () => {
     setLoading(true);
     try {
       const response = await fetch(
-        "https://servidor-loja-digital.onrender.com",
+        "https://servidor-loja-digital.onrender.com/criar-pagamento",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             carrinho: state.items,
-            nomeCliente: "Cliente Teste", // Você pode substituir por nome real se tiver
+            nomeCliente: "Cliente Teste", // Substituir futuramente
             email: "cliente@email.com",
             total: state.total,
           }),
