@@ -26,9 +26,7 @@ const Header: React.FC<HeaderProps> = ({
             <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">D</span>
             </div>
-            <span className="text-xl font-bold text-gray-800">
-              DigitalStore
-            </span>
+            <span className="text-xl font-bold text-gray-800">Artfy</span>
           </div>
 
           {/* Search Bar - Desktop */}
@@ -59,24 +57,36 @@ const Header: React.FC<HeaderProps> = ({
               href="#"
               className="text-gray-700 hover:text-blue-600 transition-colors"
             >
-              Cursos
+              Sites
             </a>
             <button
-              onClick={() => onPageChange?.("ebooks")}
-              className={`transition-colors ${
+              onClick={() => {
+                onPageChange?.("ebooks");
+                setIsMenuOpen(false);
+              }}
+              className={`block py-2 w-full text-left transition-colors ${
                 currentPage === "ebooks"
                   ? "text-blue-600"
                   : "text-gray-700 hover:text-blue-600"
               }`}
             >
-              E-books
+              <span className="whitespace-nowrap">E-books</span>
             </button>
-            <a
-              href="#"
-              className="text-gray-700 hover:text-blue-600 transition-colors"
+
+            <button
+              onClick={() => {
+                onPageChange?.("templates");
+                setIsMenuOpen(false);
+              }}
+              className={`block py-2 w-full text-left transition-colors ${
+                currentPage === "templates"
+                  ? "text-blue-600"
+                  : "text-gray-700 hover:text-blue-600"
+              }`}
             >
               Templates
-            </a>
+            </button>
+
             <button
               onClick={() => onPageChange?.("support")}
               className={`transition-colors ${
@@ -184,12 +194,17 @@ const Header: React.FC<HeaderProps> = ({
               >
                 E-books
               </button>
-              <a
-                href="#"
-                className="block py-2 text-gray-700 hover:text-blue-600 transition-colors"
+              <button
+                onClick={() => onPageChange?.("templates")}
+                className={`transition-colors ${
+                  currentPage === "templates"
+                    ? "text-blue-600"
+                    : "text-gray-700 hover:text-blue-600"
+                }`}
               >
                 Templates
-              </a>
+              </button>
+
               <button
                 onClick={() => {
                   onPageChange?.("support");

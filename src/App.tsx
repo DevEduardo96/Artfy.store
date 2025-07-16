@@ -12,6 +12,7 @@ import { CartProvider } from "./context/CartContext";
 import { FavoritesProvider } from "./context/FavoritesContext"; // Importar aqui
 import { products } from "./data/products";
 import FavoritesPage from "./components/FavoritesPage";
+import TemplatesPage from "./pages/TemplatesPage";
 
 function App() {
   const [selectedCategory, setSelectedCategory] = useState("Todos");
@@ -69,6 +70,8 @@ function App() {
             <LoginPage onClose={() => setCurrentPage("home")} />
           ) : currentPage === "favorites" ? ( // ⬅️ Aqui está o novo caso
             <FavoritesPage />
+          ) : currentPage === "templates" ? (
+            <TemplatesPage products={products} />
           ) : null}
 
           <Cart />
