@@ -1,12 +1,14 @@
 import React, { useState } from "react";
-import { X, Plus, Minus, Trash2, ShoppingBag } from "lucide-react";
+import { X, Plus, Minus, Trash2, ShoppingBag, Clipboard } from "lucide-react";
 import { useCart } from "../context/CartContext";
 
 const Cart: React.FC = () => {
   const { state, dispatch } = useCart();
   const [qrCode, setQrCode] = useState<string | null>(null);
+  const [qrCodeText, setQrCodeText] = useState<string | null>(null);
   const [ticketUrl, setTicketUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const closeCart = () => dispatch({ type: "CLOSE_CART" });
 
@@ -39,7 +41,7 @@ const Cart: React.FC = () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             carrinho: state.items,
-            nomeCliente: "Cliente Teste", // Substituir futuramente
+            nomeCliente: "Cliente Teste",
             email: "cliente@email.com",
             total: state.total,
           }),
@@ -50,6 +52,7 @@ const Cart: React.FC = () => {
 
       if (data.qr_code_base64) {
         setQrCode(data.qr_code_base64);
+        setQrCodeText(data.qr_code);
         setTicketUrl(data.ticket_url);
       } else {
         alert("Erro ao gerar QR Code");
@@ -59,6 +62,14 @@ const Cart: React.FC = () => {
       alert("Erro ao finalizar compra");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const copyToClipboard = () => {
+    if (qrCodeText) {
+      navigator.clipboard.writeText(qrCodeText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
     }
   };
 
@@ -176,22 +187,31 @@ const Cart: React.FC = () => {
               <X className="h-5 w-5" />
             </button>
             <h2 className="text-lg font-bold mb-4 text-gray-800">
-              Escaneie para pagar com Pix
+              Escaneie ou copie o código Pix
             </h2>
             <img
               src={`data:image/png;base64,${qrCode}`}
               alt="QR Code Pix"
               className="mx-auto mb-4"
             />
+            <button
+              onClick={copyToClipboard}
+              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-all"
+            >
+              <Clipboard className="h-4 w-4" />
+              {copied ? "Código Copiado!" : "Copiar código Pix"}
+            </button>
             {ticketUrl && (
-              <a
-                href={ticketUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 underline text-sm"
-              >
-                Abrir no app do banco
-              </a>
+              <div className="mt-3">
+                <a
+                  href={ticketUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 underline text-sm"
+                >
+                  Abrir no app do banco
+                </a>
+              </div>
             )}
           </div>
         </div>
