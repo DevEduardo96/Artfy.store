@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import { Product } from "../types";
 import { supabase } from "../supabaseClient";
-import { useUser } from "../hook/useUser";
+import { products } from "../data/products";
 
 interface FavoritesState {
   items: Product[];
@@ -61,41 +61,61 @@ export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({
     items: [],
   });
 
-  const { user } = useUser() || {};
+  // Buscar usuário atual
+  const [user, setUser] = React.useState<any>(null);
+
+  useEffect(() => {
+    const getSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      setUser(data.session?.user ?? null);
+    };
+    getSession();
+
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ?? null);
+      }
+    );
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     const loadFavorites = async () => {
-      if (!user) return;
-
-      const { data: favData, error: favError } = await supabase
-        .from("favorites")
-        .select("product_id")
-        .eq("user_id", user.id);
-
-      if (favError) {
-        console.error("Erro ao carregar favoritos:", favError);
-        return;
-      }
-
-      const productIds = favData?.map((f) => f.product_id) ?? [];
-
-      if (productIds.length === 0) {
+      if (!user) {
         dispatch({ type: "LOAD_FAVORITES", payload: [] });
         return;
       }
 
-      // Busca detalhes dos produtos (certifique-se que a tabela products existe)
-      const { data: products, error: prodError } = await supabase
-        .from("products")
-        .select("*")
-        .in("id", productIds);
+      try {
+        const { data: favData, error: favError } = await supabase
+          .from("favorites")
+          .select("product_id")
+          .eq("user_id", user.id);
 
-      if (prodError) {
-        console.error("Erro ao carregar produtos favoritos:", prodError);
-        return;
+        if (favError) {
+          console.error("Erro ao carregar favoritos:", favError);
+          return;
+        }
+
+        const productIds = favData?.map((f) => f.product_id) ?? [];
+
+        if (productIds.length === 0) {
+          dispatch({ type: "LOAD_FAVORITES", payload: [] });
+          return;
+        }
+
+        // Como não temos tabela products no Supabase, vamos buscar dos dados locais
+        const favoriteProducts = products.filter((product) =>
+          productIds.includes(product.id)
+        );
+
+        dispatch({ type: "LOAD_FAVORITES", payload: favoriteProducts });
+      } catch (error) {
+        console.error("Erro ao carregar favoritos:", error);
       }
-
-      dispatch({ type: "LOAD_FAVORITES", payload: products || [] });
     };
 
     loadFavorites();
@@ -106,37 +126,80 @@ export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   const toggleFavorite = async (product: Product) => {
-    if (!user) return;
+    if (!user) {
+      alert("Você precisa estar logado para adicionar favoritos.");
+      return;
+    }
 
-    if (isFavorite(product.id)) {
-      const { error } = await supabase
-        .from("favorites")
-        .delete()
-        .eq("user_id", user.id)
-        .eq("product_id", product.id);
+    try {
+      if (isFavorite(product.id)) {
+        const { error } = await supabase
+          .from("favorites")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("product_id", product.id);
 
-      if (!error) {
-        dispatch({ type: "REMOVE_FAVORITE", payload: product.id });
+        if (!error) {
+          dispatch({ type: "REMOVE_FAVORITE", payload: product.id });
+        } else {
+          console.error("Erro ao remover favorito:", error);
+          alert("Erro ao remover dos favoritos. Tente novamente.");
+        }
       } else {
-        console.error("Erro ao remover favorito:", error);
-      }
-    } else {
-      const { error } = await supabase
-        .from("favorites")
-        .insert([{ user_id: user.id, product_id: product.id }]);
+        const { error } = await supabase
+          .from("favorites")
+          .insert([{ user_id: user.id, product_id: product.id }]);
 
-      if (!error) {
-        dispatch({ type: "ADD_FAVORITE", payload: product });
-      } else {
-        console.error("Erro ao adicionar favorito:", error);
+        if (!error) {
+          dispatch({ type: "ADD_FAVORITE", payload: product });
+        } else {
+          console.error("Erro ao adicionar favorito:", error);
+          alert("Erro ao adicionar aos favoritos. Tente novamente.");
+        }
       }
+    } catch (error) {
+      console.error("Erro na operação de favoritos:", error);
+      alert("Erro inesperado. Tente novamente.");
     }
   };
 
+  const clearAllFavorites = async () => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from("favorites")
+        .delete()
+        .eq("user_id", user.id);
+
+      if (!error) {
+        dispatch({ type: "CLEAR_FAVORITES" });
+      } else {
+        console.error("Erro ao limpar favoritos:", error);
+        alert("Erro ao limpar favoritos. Tente novamente.");
+      }
+    } catch (error) {
+      console.error("Erro ao limpar favoritos:", error);
+      alert("Erro inesperado. Tente novamente.");
+    }
+  };
+
+  // Adicionar clearAllFavorites ao contexto
+  const contextValue = {
+    state,
+    dispatch: (action: FavoritesAction) => {
+      if (action.type === "CLEAR_FAVORITES") {
+        clearAllFavorites();
+      } else {
+        dispatch(action);
+      }
+    },
+    isFavorite,
+    toggleFavorite,
+  };
+
   return (
-    <FavoritesContext.Provider
-      value={{ state, dispatch, isFavorite, toggleFavorite }}
-    >
+    <FavoritesContext.Provider value={contextValue}>
       {children}
     </FavoritesContext.Provider>
   );

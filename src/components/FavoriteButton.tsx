@@ -1,68 +1,38 @@
-// src/components/FavoriteButton.tsx
-import { useEffect, useState } from "react";
-import { supabase } from "../supabaseClient";
-import { useUser } from "../hook/useUser";
+import React from "react";
+import { Heart } from "lucide-react";
+import { useFavorites } from "../context/FavoritesContext";
+import { Product } from "../types";
 
 interface FavoriteButtonProps {
-  productId: string;
+  product: Product;
+  className?: string;
 }
 
-const FavoriteButton: React.FC<FavoriteButtonProps> = ({ productId }) => {
-  const user = useUser();
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [loading, setLoading] = useState(false);
+const FavoriteButton: React.FC<FavoriteButtonProps> = ({ 
+  product, 
+  className = "text-red-500 text-xl hover:scale-110 transition" 
+}) => {
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const isProductFavorite = isFavorite(product.id);
 
-  // Verifica se o produto já está favoritado
-  useEffect(() => {
-    const fetchFavorite = async () => {
-      if (!user) return;
-      const { data, error } = await supabase
-        .from("favorites")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("product_id", productId)
-        .single();
-
-      setIsFavorite(!!data);
-    };
-
-    fetchFavorite();
-  }, [user, productId]);
-
-  const toggleFavorite = async () => {
-    if (!user || loading) return;
-    setLoading(true);
-
-    if (isFavorite) {
-      // Remove dos favoritos
-      await supabase
-        .from("favorites")
-        .delete()
-        .eq("user_id", user.id)
-        .eq("product_id", productId);
-      setIsFavorite(false);
-    } else {
-      // Adiciona aos favoritos
-      await supabase.from("favorites").insert([
-        {
-          user_id: user.id,
-          product_id: productId,
-        },
-      ]);
-      setIsFavorite(true);
-    }
-
-    setLoading(false);
+  const handleToggle = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleFavorite(product);
   };
 
   return (
     <button
-      onClick={toggleFavorite}
-      className="text-red-500 text-xl hover:scale-110 transition"
-      disabled={loading || !user}
-      title={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+      onClick={handleToggle}
+      className={className}
+      title={isProductFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+      type="button"
     >
-      {isFavorite ? <FaHeart /> : <FaRegHeart />}
+      <Heart 
+        className={`h-5 w-5 ${
+          isProductFavorite ? "fill-red-500 text-red-500" : "stroke-current"
+        }`} 
+      />
     </button>
   );
 };
