@@ -6,6 +6,8 @@ import React, {
   ReactNode,
 } from "react";
 import { Product } from "../types";
+import { supabase } from "../supabaseClient";
+import { useUser } from "../hook/useUser";
 
 interface FavoritesState {
   items: Product[];
@@ -29,27 +31,19 @@ const favoritesReducer = (
   action: FavoritesAction
 ): FavoritesState => {
   switch (action.type) {
-    case "ADD_FAVORITE": {
-      const isAlreadyFavorite = state.items.some(
-        (item) => item.id === action.payload.id
-      );
-      if (isAlreadyFavorite) return state;
+    case "ADD_FAVORITE":
+      return {
+        ...state,
+        items: [...state.items, action.payload],
+      };
 
-      const newItems = [...state.items, action.payload];
-      localStorage.setItem("favorites", JSON.stringify(newItems));
-      return { ...state, items: newItems };
-    }
-
-    case "REMOVE_FAVORITE": {
-      const filteredItems = state.items.filter(
-        (item) => item.id !== action.payload
-      );
-      localStorage.setItem("favorites", JSON.stringify(filteredItems));
-      return { ...state, items: filteredItems };
-    }
+    case "REMOVE_FAVORITE":
+      return {
+        ...state,
+        items: state.items.filter((item) => item.id !== action.payload),
+      };
 
     case "CLEAR_FAVORITES":
-      localStorage.removeItem("favorites");
       return { ...state, items: [] };
 
     case "LOAD_FAVORITES":
@@ -67,28 +61,75 @@ export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({
     items: [],
   });
 
-  // Carregar favoritos do localStorage na inicialização
+  const { user } = useUser() || {};
+
   useEffect(() => {
-    const savedFavorites = localStorage.getItem("favorites");
-    if (savedFavorites) {
-      try {
-        const favorites = JSON.parse(savedFavorites);
-        dispatch({ type: "LOAD_FAVORITES", payload: favorites });
-      } catch (error) {
-        console.error("Erro ao carregar favoritos:", error);
+    const loadFavorites = async () => {
+      if (!user) return;
+
+      const { data: favData, error: favError } = await supabase
+        .from("favorites")
+        .select("product_id")
+        .eq("user_id", user.id);
+
+      if (favError) {
+        console.error("Erro ao carregar favoritos:", favError);
+        return;
       }
-    }
-  }, []);
+
+      const productIds = favData?.map((f) => f.product_id) ?? [];
+
+      if (productIds.length === 0) {
+        dispatch({ type: "LOAD_FAVORITES", payload: [] });
+        return;
+      }
+
+      // Busca detalhes dos produtos (certifique-se que a tabela products existe)
+      const { data: products, error: prodError } = await supabase
+        .from("products")
+        .select("*")
+        .in("id", productIds);
+
+      if (prodError) {
+        console.error("Erro ao carregar produtos favoritos:", prodError);
+        return;
+      }
+
+      dispatch({ type: "LOAD_FAVORITES", payload: products || [] });
+    };
+
+    loadFavorites();
+  }, [user]);
 
   const isFavorite = (productId: string): boolean => {
     return state.items.some((item) => item.id === productId);
   };
 
-  const toggleFavorite = (product: Product) => {
+  const toggleFavorite = async (product: Product) => {
+    if (!user) return;
+
     if (isFavorite(product.id)) {
-      dispatch({ type: "REMOVE_FAVORITE", payload: product.id });
+      const { error } = await supabase
+        .from("favorites")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("product_id", product.id);
+
+      if (!error) {
+        dispatch({ type: "REMOVE_FAVORITE", payload: product.id });
+      } else {
+        console.error("Erro ao remover favorito:", error);
+      }
     } else {
-      dispatch({ type: "ADD_FAVORITE", payload: product });
+      const { error } = await supabase
+        .from("favorites")
+        .insert([{ user_id: user.id, product_id: product.id }]);
+
+      if (!error) {
+        dispatch({ type: "ADD_FAVORITE", payload: product });
+      } else {
+        console.error("Erro ao adicionar favorito:", error);
+      }
     }
   };
 

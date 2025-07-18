@@ -12,10 +12,9 @@ import {
   Facebook,
   Github,
   Shield,
-  Smartphone,
   Key,
 } from "lucide-react";
-import Footer from "./Footer";
+import { supabase } from "../supabaseClient";
 
 interface LoginPageProps {
   onClose?: () => void;
@@ -52,25 +51,30 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose }) => {
     email: "",
   });
 
+  // LOGIN usando Supabase
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setMessage(null);
 
-    // Simulação de login
-    setTimeout(() => {
-      if (loginForm.email && loginForm.password) {
-        setMessage({ type: "success", text: "Login realizado com sucesso!" });
-        setTimeout(() => {
-          onClose?.();
-        }, 1500);
-      } else {
-        setMessage({ type: "error", text: "Email ou senha inválidos." });
-      }
-      setIsLoading(false);
-    }, 1500);
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: loginForm.email,
+      password: loginForm.password,
+    });
+
+    if (error) {
+      setMessage({ type: "error", text: error.message });
+    } else {
+      setMessage({ type: "success", text: "Login realizado com sucesso!" });
+      setTimeout(() => {
+        onClose?.();
+      }, 1500);
+    }
+
+    setIsLoading(false);
   };
 
+  // REGISTRO usando Supabase
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -91,8 +95,20 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose }) => {
       return;
     }
 
-    // Simulação de cadastro
-    setTimeout(() => {
+    const { data, error } = await supabase.auth.signUp({
+      email: registerForm.email,
+      password: registerForm.password,
+      options: {
+        data: {
+          full_name: registerForm.name,
+          newsletter: registerForm.newsletter,
+        },
+      },
+    });
+
+    if (error) {
+      setMessage({ type: "error", text: error.message });
+    } else {
       setMessage({
         type: "success",
         text: "Conta criada com sucesso! Verifique seu email.",
@@ -101,26 +117,38 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose }) => {
         setActiveTab("login");
         setMessage(null);
       }, 2000);
-      setIsLoading(false);
-    }, 1500);
+    }
+
+    setIsLoading(false);
   };
 
+  // RECUPERAÇÃO DE SENHA usando Supabase
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setMessage(null);
 
-    // Simulação de recuperação
-    setTimeout(() => {
+    const { data, error } = await supabase.auth.resetPasswordForEmail(
+      forgotForm.email,
+      {
+        redirectTo: window.location.origin + "/reset-password", // ajuste conforme sua rota
+      }
+    );
+
+    if (error) {
+      setMessage({ type: "error", text: error.message });
+    } else {
       setMessage({ type: "success", text: "Email de recuperação enviado!" });
       setTimeout(() => {
         setActiveTab("login");
         setMessage(null);
       }, 2000);
-      setIsLoading(false);
-    }, 1500);
+    }
+
+    setIsLoading(false);
   };
 
+  // LOGIN SOCIAL - só mensagem, implementar depois
   const socialLogin = (provider: string) => {
     setMessage({ type: "success", text: `Redirecionando para ${provider}...` });
   };
@@ -228,6 +256,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose }) => {
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600"
+                      tabIndex={-1}
                     >
                       {showPassword ? (
                         <EyeOff className="h-4 w-4" />
@@ -351,6 +380,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose }) => {
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600"
+                      tabIndex={-1}
                     >
                       {showPassword ? (
                         <EyeOff className="h-4 w-4" />
@@ -386,6 +416,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose }) => {
                         setShowConfirmPassword(!showConfirmPassword)
                       }
                       className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600"
+                      tabIndex={-1}
                     >
                       {showConfirmPassword ? (
                         <EyeOff className="h-4 w-4" />
@@ -507,78 +538,51 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose }) => {
                       </>
                     )}
                   </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("login")}
-                    className="w-full text-gray-600 hover:text-gray-800 transition-colors"
-                  >
-                    Voltar ao login
-                  </button>
                 </form>
+
+                <button
+                  onClick={() => {
+                    setActiveTab("login");
+                    setMessage(null);
+                  }}
+                  className="w-full text-center text-blue-600 hover:text-blue-700 mt-4"
+                >
+                  Voltar para o login
+                </button>
               </div>
             )}
 
             {/* Social Login */}
-            {activeTab !== "forgot" && (
-              <div className="mt-6">
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-300" />
-                  </div>
-                  <div className="relative flex justify-center text-sm">
-                    <span className="px-2 bg-white text-gray-500">
-                      Ou continue com
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mt-6 grid grid-cols-3 gap-3">
+            {(activeTab === "login" || activeTab === "register") && (
+              <div className="mt-6 border-t border-gray-200 pt-6">
+                <p className="text-center text-gray-500 mb-3">Ou entre com</p>
+                <div className="flex justify-center gap-6">
                   <button
                     onClick={() => socialLogin("Google")}
-                    className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-lg bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors"
+                    className="p-2 rounded-full border border-gray-300 hover:bg-gray-100 transition"
+                    aria-label="Entrar com Google"
                   >
-                    <Google className="h-5 w-5 text-red-500" />
+                    <Google className="h-6 w-6 text-red-500" />
                   </button>
-
                   <button
                     onClick={() => socialLogin("Facebook")}
-                    className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-lg bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors"
+                    className="p-2 rounded-full border border-gray-300 hover:bg-gray-100 transition"
+                    aria-label="Entrar com Facebook"
                   >
-                    <Facebook className="h-5 w-5 text-blue-600" />
+                    <Facebook className="h-6 w-6 text-blue-700" />
                   </button>
-
                   <button
                     onClick={() => socialLogin("GitHub")}
-                    className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-lg bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors"
+                    className="p-2 rounded-full border border-gray-300 hover:bg-gray-100 transition"
+                    aria-label="Entrar com GitHub"
                   >
-                    <Github className="h-5 w-5 text-gray-800" />
+                    <Github className="h-6 w-6 text-gray-900" />
                   </button>
                 </div>
               </div>
             )}
           </div>
         </div>
-
-        {/* Security Notice */}
-        <div className="mt-6 text-center">
-          <div className="inline-flex items-center space-x-2 text-sm text-gray-600">
-            <Shield className="h-4 w-4" />
-            <span>Seus dados estão protegidos com criptografia SSL</span>
-          </div>
-        </div>
-
-        {/* Close Button */}
-        {onClose && (
-          <div className="mt-4 text-center">
-            <button
-              onClick={onClose}
-              className="text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              Voltar à loja
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -1,6 +1,15 @@
-import React, { useState } from "react";
-import { Search, ShoppingCart, Menu, X, User, Heart } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import {
+  Search,
+  ShoppingCart,
+  Menu,
+  X,
+  User,
+  Heart,
+  LogOut,
+} from "lucide-react";
 import { useCart } from "../context/CartContext";
+import { supabase } from "../supabaseClient";
 
 interface HeaderProps {
   currentPage?: string;
@@ -12,10 +21,37 @@ const Header: React.FC<HeaderProps> = ({
   onPageChange,
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
   const { state, dispatch } = useCart();
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const openCart = () => dispatch({ type: "OPEN_CART" });
+
+  // Buscar usuário atual e escutar mudanças de autenticação
+  useEffect(() => {
+    const fetchUser = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+    };
+
+    fetchUser();
+
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ?? null);
+      }
+    );
+
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    if (onPageChange) onPageChange("home");
+  };
 
   return (
     <header className="bg-white shadow-lg sticky top-0 z-50">
@@ -29,77 +65,38 @@ const Header: React.FC<HeaderProps> = ({
             <span className="text-xl font-bold text-gray-800">Artfy</span>
           </div>
 
-          {/* Search Bar - Desktop */}
+          {/* Search */}
           <div className="hidden md:flex flex-1 max-w-md mx-8">
             <div className="relative w-full">
               <input
                 type="text"
                 placeholder="Buscar produtos..."
-                className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <Search className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
             </div>
           </div>
 
-          {/* Desktop Navigation */}
+          {/* Navegação Desktop */}
           <nav className="hidden md:flex items-center space-x-6">
-            <button
-              onClick={() => onPageChange?.("home")}
-              className={`transition-colors ${
-                currentPage === "home"
-                  ? "text-blue-600"
-                  : "text-gray-700 hover:text-blue-600"
-              }`}
-            >
-              Início
-            </button>
-            <a
-              href="#"
-              className="text-gray-700 hover:text-blue-600 transition-colors"
-            >
-              Sites
-            </a>
-            <button
-              onClick={() => {
-                onPageChange?.("ebooks");
-                setIsMenuOpen(false);
-              }}
-              className={`block py-2 w-full text-left transition-colors ${
-                currentPage === "ebooks"
-                  ? "text-blue-600"
-                  : "text-gray-700 hover:text-blue-600"
-              }`}
-            >
-              <span className="whitespace-nowrap">E-books</span>
-            </button>
-
-            <button
-              onClick={() => {
-                onPageChange?.("templates");
-                setIsMenuOpen(false);
-              }}
-              className={`block py-2 w-full text-left transition-colors ${
-                currentPage === "templates"
-                  ? "text-blue-600"
-                  : "text-gray-700 hover:text-blue-600"
-              }`}
-            >
-              Templates
-            </button>
-
-            <button
-              onClick={() => onPageChange?.("support")}
-              className={`transition-colors ${
-                currentPage === "support"
-                  ? "text-blue-600"
-                  : "text-gray-700 hover:text-blue-600"
-              }`}
-            >
-              Suporte
-            </button>
+            {["home", "ebooks", "sites", "support"].map((page) => (
+              <button
+                key={page}
+                onClick={() => onPageChange?.(page)}
+                className={`transition-colors ${
+                  currentPage === page
+                    ? "text-blue-600"
+                    : "text-gray-700 hover:text-blue-600"
+                }`}
+              >
+                {page === "home"
+                  ? "Início"
+                  : page[0].toUpperCase() + page.slice(1)}
+              </button>
+            ))}
           </nav>
 
-          {/* Action Buttons */}
+          {/* Ações */}
           <div className="flex items-center space-x-4">
             <button
               onClick={() => onPageChange?.("favorites")}
@@ -113,12 +110,41 @@ const Header: React.FC<HeaderProps> = ({
               <Heart className="h-6 w-6" />
             </button>
 
-            <button
-              onClick={() => onPageChange?.("login")}
-              className="p-2 text-gray-700 hover:text-blue-600 transition-colors"
-            >
-              <User className="h-6 w-6" />
-            </button>
+            {/* Menu do Usuário */}
+            {user ? (
+              <div className="relative group">
+                <button className="flex items-center space-x-2 p-2 text-gray-700 hover:text-blue-600 transition-colors rounded">
+                  {user.user_metadata?.avatar_url ? (
+                    <img
+                      src={user.user_metadata.avatar_url}
+                      alt="Avatar"
+                      className="w-6 h-6 rounded-full object-cover"
+                    />
+                  ) : (
+                    <User className="h-6 w-6" />
+                  )}
+                  <span className="hidden md:inline text-sm font-medium">
+                    {user.user_metadata?.full_name || user.email}
+                  </span>
+                </button>
+                <div className="absolute right-0 mt-2 w-36 bg-white border rounded shadow-md hidden group-hover:block z-50">
+                  <button
+                    onClick={handleLogout}
+                    className="w-full px-4 py-2 text-left text-red-600 hover:bg-gray-100 flex items-center space-x-2"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>Sair</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => onPageChange?.("login")}
+                className="p-2 text-gray-700 hover:text-blue-600 transition-colors"
+              >
+                <User className="h-6 w-6" />
+              </button>
+            )}
 
             <button
               onClick={openCart}
@@ -148,7 +174,7 @@ const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Menu Mobile */}
         {isMenuOpen && (
           <div className="md:hidden mt-4 pb-4">
             <div className="flex mb-4">
@@ -162,75 +188,28 @@ const Header: React.FC<HeaderProps> = ({
               </div>
             </div>
             <nav className="space-y-2">
-              <button
-                onClick={() => {
-                  onPageChange?.("home");
-                  setIsMenuOpen(false);
-                }}
-                className={`block py-2 w-full text-left transition-colors ${
-                  currentPage === "home"
-                    ? "text-blue-600"
-                    : "text-gray-700 hover:text-blue-600"
-                }`}
-              >
-                Início
-              </button>
-              <a
-                href="#"
-                className="block py-2 text-gray-700 hover:text-blue-600 transition-colors"
-              >
-                Cursos
-              </a>
-              <button
-                onClick={() => {
-                  onPageChange?.("ebooks");
-                  setIsMenuOpen(false);
-                }}
-                className={`block py-2 w-full text-left transition-colors ${
-                  currentPage === "ebooks"
-                    ? "text-blue-600"
-                    : "text-gray-700 hover:text-blue-600"
-                }`}
-              >
-                E-books
-              </button>
-              <button
-                onClick={() => onPageChange?.("templates")}
-                className={`transition-colors ${
-                  currentPage === "templates"
-                    ? "text-blue-600"
-                    : "text-gray-700 hover:text-blue-600"
-                }`}
-              >
-                Templates
-              </button>
-
-              <button
-                onClick={() => {
-                  onPageChange?.("support");
-                  setIsMenuOpen(false);
-                }}
-                className={`block py-2 w-full text-left transition-colors ${
-                  currentPage === "support"
-                    ? "text-blue-600"
-                    : "text-gray-700 hover:text-blue-600"
-                }`}
-              >
-                Suporte
-              </button>
-              <button
-                onClick={() => {
-                  onPageChange?.("favorites");
-                  setIsMenuOpen(false);
-                }}
-                className={`block py-2 w-full text-left transition-colors ${
-                  currentPage === "favorites"
-                    ? "text-red-600"
-                    : "text-gray-700 hover:text-red-600"
-                }`}
-              >
-                Favoritos
-              </button>
+              {["home", "ebooks", "sites", "support", "favorites"].map(
+                (page) => (
+                  <button
+                    key={page}
+                    onClick={() => {
+                      onPageChange?.(page);
+                      setIsMenuOpen(false);
+                    }}
+                    className={`block py-2 w-full text-left transition-colors ${
+                      currentPage === page
+                        ? page === "favorites"
+                          ? "text-red-600"
+                          : "text-blue-600"
+                        : "text-gray-700 hover:text-blue-600"
+                    }`}
+                  >
+                    {page === "home"
+                      ? "Início"
+                      : page[0].toUpperCase() + page.slice(1)}
+                  </button>
+                )
+              )}
             </nav>
           </div>
         )}

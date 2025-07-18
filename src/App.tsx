@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+// src/App.tsx
+import React, { useState, useMemo, useEffect } from "react";
 import Header from "./components/Header";
 import Hero from "./components/Hero";
 import SupportPage from "./components/SupportPage";
@@ -9,14 +10,45 @@ import ProductCard from "./components/ProductCard";
 import Cart from "./components/Cart";
 import Footer from "./components/Footer";
 import { CartProvider } from "./context/CartContext";
-import { FavoritesProvider } from "./context/FavoritesContext"; // Importar aqui
+import { FavoritesProvider } from "./context/FavoritesContext";
 import { products } from "./data/products";
 import FavoritesPage from "./components/FavoritesPage";
-import TemplatesPage from "./pages/TemplatesPage";
+// Importar SitesPage
+import SitesPage from "./pages/SitesPage";
+import ResetPassword from "./components/ResetPassword";
+import UserProfile from "./pages/UserProfile";
+import { supabase } from "./supabaseClient";
 
 function App() {
   const [selectedCategory, setSelectedCategory] = useState("Todos");
   const [currentPage, setCurrentPage] = useState("home");
+  const [user, setUser] = useState<any>(null);
+  const [showUserProfile, setShowUserProfile] = useState(false);
+
+  useEffect(() => {
+    const getSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      setUser(data.session?.user ?? null);
+    };
+    getSession();
+
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ?? null);
+      }
+    );
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setShowUserProfile(false);
+    setCurrentPage("home");
+  };
 
   const categories = useMemo(() => {
     const uniqueCategories = [
@@ -26,11 +58,19 @@ function App() {
   }, []);
 
   const filteredProducts = useMemo(() => {
-    if (selectedCategory === "Todos") {
-      return products;
-    }
+    if (selectedCategory === "Todos") return products;
     return products.filter((product) => product.category === selectedCategory);
   }, [selectedCategory]);
+
+  if (showUserProfile) {
+    return (
+      <UserProfile
+        user={user}
+        onLogout={handleLogout}
+        onBack={() => setShowUserProfile(false)}
+      />
+    );
+  }
 
   return (
     <CartProvider>
@@ -68,10 +108,12 @@ function App() {
             <EbooksPage products={products} />
           ) : currentPage === "login" ? (
             <LoginPage onClose={() => setCurrentPage("home")} />
-          ) : currentPage === "favorites" ? ( // ⬅️ Aqui está o novo caso
+          ) : currentPage === "favorites" ? (
             <FavoritesPage />
-          ) : currentPage === "templates" ? (
-            <TemplatesPage products={products} />
+          ) : currentPage === "sites" ? (
+            <SitesPage products={products} />
+          ) : currentPage === "reset-password" ? (
+            <ResetPassword onFinish={() => setCurrentPage("login")} />
           ) : null}
 
           <Cart />

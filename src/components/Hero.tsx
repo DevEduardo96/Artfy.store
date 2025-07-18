@@ -1,5 +1,6 @@
-import React from 'react';
-import { ArrowRight, Play, Star } from 'lucide-react';
+import React from "react";
+import { ArrowRight, Play, Star } from "lucide-react";
+import imgInicial from "../style/imgs/imageminicial.webp";
 
 const Hero: React.FC = () => {
   return (
@@ -11,31 +12,33 @@ const Hero: React.FC = () => {
               <Star className="h-4 w-4 fill-current" />
               <span>Produtos Digitais Premium</span>
             </div>
-            
+
             <h1 className="text-4xl lg:text-6xl font-bold text-gray-800 leading-tight">
               Acelere seu
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
-                {' '}aprendizado{' '}
+                {" "}
+                aprendizado{" "}
               </span>
               com conteúdo de qualidade
             </h1>
-            
+
             <p className="text-lg text-gray-600 max-w-lg">
-              Descubra cursos, e-books e templates criados por especialistas para impulsionar sua carreira e projetos.
+              Descubra cursos, e-books e templates criados por especialistas
+              para impulsionar sua carreira e projetos.
             </p>
-            
+
             <div className="flex flex-col sm:flex-row gap-4">
               <button className="flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105">
                 <span>Explorar Produtos</span>
                 <ArrowRight className="h-5 w-5" />
               </button>
-              
+
               <button className="flex items-center justify-center space-x-2 border-2 border-gray-300 text-gray-700 px-8 py-4 rounded-lg font-semibold hover:border-blue-600 hover:text-blue-600 transition-all duration-300">
                 <Play className="h-5 w-5" />
                 <span>Ver Demo</span>
               </button>
             </div>
-            
+
             <div className="flex items-center space-x-8 pt-4">
               <div className="text-center">
                 <div className="text-2xl font-bold text-gray-800">1000+</div>
@@ -51,11 +54,11 @@ const Hero: React.FC = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="relative">
             <div className="relative z-10">
               <img
-                src="https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=800"
+                src={imgInicial}
                 alt="Aprendizado Online"
                 className="w-full h-96 object-cover rounded-2xl shadow-2xl"
               />
