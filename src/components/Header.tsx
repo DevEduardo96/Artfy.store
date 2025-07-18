@@ -79,7 +79,7 @@ const Header: React.FC<HeaderProps> = ({
 
           {/* Navegação Desktop */}
           <nav className="hidden md:flex items-center space-x-6">
-            {["home", "ebooks", "sites", "support"].map((page) => (
+            {["home", "ebooks", "sites", "suporte"].map((page) => (
               <button
                 key={page}
                 onClick={() => onPageChange?.(page)}
@@ -90,7 +90,7 @@ const Header: React.FC<HeaderProps> = ({
                 }`}
               >
                 {page === "home"
-                  ? "Início"
+                  ? "Home"
                   : page[0].toUpperCase() + page.slice(1)}
               </button>
             ))}
@@ -188,7 +188,7 @@ const Header: React.FC<HeaderProps> = ({
               </div>
             </div>
             <nav className="space-y-2">
-              {["home", "ebooks", "sites", "support", "favorites"].map(
+              {["home", "ebooks", "sites", "Suporte", "favorites"].map(
                 (page) => (
                   <button
                     key={page}
@@ -205,7 +205,7 @@ const Header: React.FC<HeaderProps> = ({
                     }`}
                   >
                     {page === "home"
-                      ? "Início"
+                      ? "home"
                       : page[0].toUpperCase() + page.slice(1)}
                   </button>
                 )

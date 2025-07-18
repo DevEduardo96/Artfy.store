@@ -102,7 +102,7 @@ function App() {
               </main>
               <Footer />
             </>
-          ) : currentPage === "support" ? (
+          ) : currentPage === "suporte" ? (
             <SupportPage />
           ) : currentPage === "ebooks" ? (
             <EbooksPage products={products} />
