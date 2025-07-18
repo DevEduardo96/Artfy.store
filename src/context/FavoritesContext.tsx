@@ -11,13 +11,15 @@ import { products } from "../data/products";
 
 interface FavoritesState {
   items: Product[];
+  loading: boolean;
 }
 
 type FavoritesAction =
   | { type: "ADD_FAVORITE"; payload: Product }
   | { type: "REMOVE_FAVORITE"; payload: string }
   | { type: "CLEAR_FAVORITES" }
-  | { type: "LOAD_FAVORITES"; payload: Product[] };
+  | { type: "LOAD_FAVORITES"; payload: Product[] }
+  | { type: "SET_LOADING"; payload: boolean };
 
 const FavoritesContext = createContext<{
   state: FavoritesState;
@@ -32,6 +34,10 @@ const favoritesReducer = (
 ): FavoritesState => {
   switch (action.type) {
     case "ADD_FAVORITE":
+      // Evita duplicatas
+      if (state.items.some(item => item.id === action.payload.id)) {
+        return state;
+      }
       return {
         ...state,
         items: [...state.items, action.payload],
@@ -49,6 +55,9 @@ const favoritesReducer = (
     case "LOAD_FAVORITES":
       return { ...state, items: action.payload };
 
+    case "SET_LOADING":
+      return { ...state, loading: action.payload };
+
     default:
       return state;
   }
@@ -59,6 +68,7 @@ export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({
 }) => {
   const [state, dispatch] = useReducer(favoritesReducer, {
     items: [],
+    loading: false,
   });
 
   // Buscar usuário atual
@@ -89,6 +99,8 @@ export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({
         return;
       }
 
+      dispatch({ type: "SET_LOADING", payload: true });
+
       try {
         const { data: favData, error: favError } = await supabase
           .from("favorites")
@@ -97,6 +109,7 @@ export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({
 
         if (favError) {
           console.error("Erro ao carregar favoritos:", favError);
+          dispatch({ type: "SET_LOADING", payload: false });
           return;
         }
 
@@ -104,6 +117,7 @@ export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({
 
         if (productIds.length === 0) {
           dispatch({ type: "LOAD_FAVORITES", payload: [] });
+          dispatch({ type: "SET_LOADING", payload: false });
           return;
         }
 
@@ -115,6 +129,8 @@ export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({
         dispatch({ type: "LOAD_FAVORITES", payload: favoriteProducts });
       } catch (error) {
         console.error("Erro ao carregar favoritos:", error);
+      } finally {
+        dispatch({ type: "SET_LOADING", payload: false });
       }
     };
 
@@ -131,8 +147,11 @@ export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({
       return;
     }
 
+    console.log("Toggling favorite for product:", product.id, "User:", user.id);
+
     try {
       if (isFavorite(product.id)) {
+        console.log("Removendo dos favoritos...");
         const { error } = await supabase
           .from("favorites")
           .delete()
@@ -141,19 +160,29 @@ export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({
 
         if (!error) {
           dispatch({ type: "REMOVE_FAVORITE", payload: product.id });
+          console.log("Removido dos favoritos com sucesso");
         } else {
           console.error("Erro ao remover favorito:", error);
           alert("Erro ao remover dos favoritos. Tente novamente.");
         }
       } else {
+        console.log("Adicionando aos favoritos...");
         const { error } = await supabase
           .from("favorites")
           .insert([{ user_id: user.id, product_id: product.id }]);
 
         if (!error) {
           dispatch({ type: "ADD_FAVORITE", payload: product });
+          console.log("Adicionado aos favoritos com sucesso");
         } else {
           console.error("Erro ao adicionar favorito:", error);
+          // Verificar se é erro de duplicata
+          if (error.code === '23505') {
+            console.log("Produto já está nos favoritos");
+            dispatch({ type: "ADD_FAVORITE", payload: product });
+          } else {
+            alert("Erro ao adicionar aos favoritos. Tente novamente.");
+          }
           alert("Erro ao adicionar aos favoritos. Tente novamente.");
         }
       }

@@ -10,12 +10,10 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { dispatch } = useCart();
-  const { state: favoritesState, toggleFavorite } = useFavorites();
+  const { isFavorite, toggleFavorite } = useFavorites();
 
   // Verifica se o produto já está nos favoritos
-  const isFavorite = favoritesState.items.some(
-    (item) => item.id === product.id
-  );
+  const isProductFavorite = isFavorite(product.id);
 
   const addToCart = () => {
     dispatch({ type: "ADD_ITEM", payload: product });
@@ -32,6 +30,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const handleToggleFavorite = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+    console.log("ProductCard: Toggling favorite for", product.name);
     toggleFavorite(product);
   };
 
@@ -46,7 +45,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         <button
           onClick={handleToggleFavorite}
           aria-label={
-            isFavorite
+            isProductFavorite
               ? `Remover ${product.name} dos favoritos`
               : `Adicionar ${product.name} aos favoritos`
           }
@@ -55,7 +54,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         >
           <Heart
             className={`h-5 w-5 ${
-              isFavorite ? "fill-red-500 text-red-500" : "stroke-current"
+              isProductFavorite ? "fill-red-500 text-red-500" : "stroke-current"
             }`}
           />
         </button>
