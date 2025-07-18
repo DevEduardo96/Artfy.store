@@ -453,7 +453,7 @@ const SupportPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Contact Info */}
+            {/* Informações de contato */}
             <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-6">
               <h3 className="text-xl font-bold text-gray-800 mb-4">
                 Informações de Contato
@@ -461,15 +461,15 @@ const SupportPage: React.FC = () => {
               <div className="space-y-3 text-sm">
                 <div className="flex items-center space-x-2">
                   <Mail className="h-4 w-4 text-blue-600" />
-                  <span>suporte@digitalstore.com</span>
+                  <span>elecshopping@gmail.com</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Phone className="h-4 w-4 text-blue-600" />
-                  <span>+55 (11) 99999-9999</span>
+                  <span>+55 (86) 99946-1236</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Clock className="h-4 w-4 text-blue-600" />
-                  <span>Seg-Sex: 9h às 18h</span>
+                  <span>Seg-Sex: 7h às 18h</span>
                 </div>
               </div>
             </div>
