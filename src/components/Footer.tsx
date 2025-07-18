@@ -17,10 +17,10 @@ const Footer: React.FC = () => {
           {/* Company Info */}
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">D</span>
+              <div className="w-10 h-10  from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                <img src="/logowhite.webp" alt="" />
               </div>
-              <span className="text-xl font-bold">DigitalStore</span>
+              <span className="text-xl font-bold text-white">IArt</span>
             </div>
             <p className="text-gray-400">
               Sua loja de produtos digitais premium. Cursos, e-books e templates

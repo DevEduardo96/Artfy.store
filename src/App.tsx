@@ -1,5 +1,5 @@
 // src/App.tsx
-import React, { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Header from "./components/Header";
 import Hero from "./components/Hero";
 import SupportPage from "./components/SupportPage";

@@ -56,14 +56,14 @@ const Hero: React.FC = () => {
           </div>
 
           <div className="relative">
-            <div className="relative z-10">
+            <div className="relative z-10 w-[600px] h-[600px]">
               <img
                 src={imgInicial}
                 alt="Aprendizado Online"
-                className="w-full h-96 object-cover rounded-2xl shadow-2xl"
+                className="w-full h-full object-cover rounded-2xl " //shadow-2xl//
               />
             </div>
-            <div className="absolute -top-4 -right-4 w-full h-full bg-gradient-to-br from-blue-200 to-purple-200 rounded-2xl -z-10"></div>
+            <div className="absolute -top-4 -right-4 w-[600px] h-[600px] bg-gradient-to-br from-blue-200 to-purple-200 rounded-2xl -z-10"></div>
           </div>
         </div>
       </div>
