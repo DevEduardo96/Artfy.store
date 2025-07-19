@@ -58,7 +58,7 @@ const Header: React.FC = () => {
             <div className="w-10 h-10">
               <img src="/logo02.webp" alt="Logo" />
             </div>
-            <span className="text-xl font-bold text-gray-800">IArt</span>
+            <span className="text-xl font-bold text-gray-800">Nectix</span>
           </div>
 
           {/* Search */}

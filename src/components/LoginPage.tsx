@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Mail,
   Lock,
@@ -8,19 +8,26 @@ import {
   ArrowRight,
   CheckCircle,
   AlertCircle,
-  ToggleLeft as Google,
-  Facebook,
-  Github,
-  Shield,
   Key,
+  X,
+  Loader2,
 } from "lucide-react";
 import { supabase } from "../supabaseClient";
 
 interface LoginPageProps {
   onClose?: () => void;
+  onSuccess?: (user: any) => void;
 }
 
-const LoginPage: React.FC<LoginPageProps> = ({ onClose }) => {
+interface FormErrors {
+  email?: string;
+  password?: string;
+  confirmPassword?: string;
+  name?: string;
+  terms?: string;
+}
+
+const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
   const [activeTab, setActiveTab] = useState<"login" | "register" | "forgot">(
     "login"
   );
@@ -28,9 +35,10 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose }) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{
-    type: "success" | "error";
+    type: "success" | "error" | "info";
     text: string;
   } | null>(null);
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
 
   const [loginForm, setLoginForm] = useState({
     email: "",
@@ -51,142 +59,392 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose }) => {
     email: "",
   });
 
+  // Validação de email
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // Validação de senha forte
+  const isStrongPassword = (password: string): boolean => {
+    return (
+      password.length >= 8 &&
+      /[A-Z]/.test(password) &&
+      /[a-z]/.test(password) &&
+      /\d/.test(password)
+    );
+  };
+
+  // Validação do formulário de login
+  const validateLoginForm = (): boolean => {
+    const errors: FormErrors = {};
+
+    if (!loginForm.email) {
+      errors.email = "Email é obrigatório";
+    } else if (!isValidEmail(loginForm.email)) {
+      errors.email = "Email inválido";
+    }
+
+    if (!loginForm.password) {
+      errors.password = "Senha é obrigatória";
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Validação do formulário de registro
+  const validateRegisterForm = (): boolean => {
+    const errors: FormErrors = {};
+
+    if (!registerForm.name.trim()) {
+      errors.name = "Nome é obrigatório";
+    } else if (registerForm.name.trim().length < 2) {
+      errors.name = "Nome deve ter pelo menos 2 caracteres";
+    }
+
+    if (!registerForm.email) {
+      errors.email = "Email é obrigatório";
+    } else if (!isValidEmail(registerForm.email)) {
+      errors.email = "Email inválido";
+    }
+
+    if (!registerForm.password) {
+      errors.password = "Senha é obrigatória";
+    } else if (!isStrongPassword(registerForm.password)) {
+      errors.password =
+        "Senha deve ter pelo menos 8 caracteres, incluindo maiúscula, minúscula e número";
+    }
+
+    if (!registerForm.confirmPassword) {
+      errors.confirmPassword = "Confirmação de senha é obrigatória";
+    } else if (registerForm.password !== registerForm.confirmPassword) {
+      errors.confirmPassword = "Senhas não coincidem";
+    }
+
+    if (!registerForm.acceptTerms) {
+      errors.terms = "Você deve aceitar os termos de uso";
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Limpar mensagens e erros quando trocar de aba
+  useEffect(() => {
+    setMessage(null);
+    setFormErrors({});
+  }, [activeTab]);
+
+  // Auto-clear de mensagens após 5 segundos
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => {
+        setMessage(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
+
   // LOGIN usando Supabase
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!validateLoginForm()) {
+      return;
+    }
+
     setIsLoading(true);
     setMessage(null);
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: loginForm.email,
-      password: loginForm.password,
-    });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: loginForm.email.trim().toLowerCase(),
+        password: loginForm.password,
+      });
 
-    if (error) {
-      setMessage({ type: "error", text: error.message });
-    } else {
-      setMessage({ type: "success", text: "Login realizado com sucesso!" });
-      setTimeout(() => {
-        onClose?.();
-      }, 1500);
+      if (error) {
+        // Mensagens de erro mais amigáveis
+        let errorMessage = "Erro ao fazer login";
+        if (error.message.includes("Invalid login credentials")) {
+          errorMessage = "Email ou senha incorretos";
+        } else if (error.message.includes("Email not confirmed")) {
+          errorMessage = "Confirme seu email antes de fazer login";
+        } else if (error.message.includes("Too many requests")) {
+          errorMessage = "Muitas tentativas. Tente novamente em alguns minutos";
+        }
+        setMessage({ type: "error", text: errorMessage });
+      } else {
+        setMessage({ type: "success", text: "Login realizado com sucesso!" });
+
+        // Reset do formulário
+        setLoginForm({ email: "", password: "", rememberMe: false });
+
+        // Callback de sucesso
+        if (onSuccess && data.user) {
+          onSuccess(data.user);
+        }
+
+        setTimeout(() => {
+          onClose?.();
+        }, 1500);
+      }
+    } catch (error) {
+      console.error("Erro no login:", error);
+      setMessage({ type: "error", text: "Erro interno. Tente novamente." });
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
   // REGISTRO usando Supabase
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!validateRegisterForm()) {
+      return;
+    }
+
     setIsLoading(true);
     setMessage(null);
 
-    if (registerForm.password !== registerForm.confirmPassword) {
-      setMessage({ type: "error", text: "As senhas não coincidem." });
-      setIsLoading(false);
-      return;
-    }
-
-    if (!registerForm.acceptTerms) {
-      setMessage({
-        type: "error",
-        text: "Você deve aceitar os termos de uso.",
-      });
-      setIsLoading(false);
-      return;
-    }
-
-    const { data, error } = await supabase.auth.signUp({
-      email: registerForm.email,
-      password: registerForm.password,
-      options: {
-        data: {
-          full_name: registerForm.name,
-          newsletter: registerForm.newsletter,
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: registerForm.email.trim().toLowerCase(),
+        password: registerForm.password,
+        options: {
+          data: {
+            full_name: registerForm.name.trim(),
+            newsletter: registerForm.newsletter,
+          },
         },
-      },
-    });
-
-    if (error) {
-      setMessage({ type: "error", text: error.message });
-    } else {
-      setMessage({
-        type: "success",
-        text: "Conta criada com sucesso! Verifique seu email.",
       });
-      setTimeout(() => {
-        setActiveTab("login");
-        setMessage(null);
-      }, 2000);
-    }
 
-    setIsLoading(false);
+      if (error) {
+        let errorMessage = "Erro ao criar conta";
+        if (error.message.includes("User already registered")) {
+          errorMessage = "Este email já está registrado";
+        } else if (error.message.includes("Password should be at least")) {
+          errorMessage = "Senha muito fraca";
+        }
+        setMessage({ type: "error", text: errorMessage });
+      } else {
+        setMessage({
+          type: "success",
+          text: "Conta criada com sucesso! Verifique seu email para confirmar.",
+        });
+
+        // Reset do formulário
+        setRegisterForm({
+          name: "",
+          email: "",
+          password: "",
+          confirmPassword: "",
+          acceptTerms: false,
+          newsletter: true,
+        });
+
+        setTimeout(() => {
+          setActiveTab("login");
+          setMessage({
+            type: "info",
+            text: "Confirme seu email para fazer login",
+          });
+        }, 3000);
+      }
+    } catch (error) {
+      console.error("Erro no registro:", error);
+      setMessage({ type: "error", text: "Erro interno. Tente novamente." });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // RECUPERAÇÃO DE SENHA usando Supabase
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setMessage(null);
 
-    const { data, error } = await supabase.auth.resetPasswordForEmail(
-      forgotForm.email,
-      {
-        redirectTo: window.location.origin + "/reset-password", // ajuste conforme sua rota
-      }
-    );
-
-    if (error) {
-      setMessage({ type: "error", text: error.message });
-    } else {
-      setMessage({ type: "success", text: "Email de recuperação enviado!" });
-      setTimeout(() => {
-        setActiveTab("login");
-        setMessage(null);
-      }, 2000);
+    if (!forgotForm.email) {
+      setFormErrors({ email: "Email é obrigatório" });
+      return;
     }
 
-    setIsLoading(false);
+    if (!isValidEmail(forgotForm.email)) {
+      setFormErrors({ email: "Email inválido" });
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage(null);
+    setFormErrors({});
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(
+        forgotForm.email.trim().toLowerCase(),
+        {
+          redirectTo: `${window.location.origin}/reset-password`,
+        }
+      );
+
+      if (error) {
+        setMessage({
+          type: "error",
+          text: "Erro ao enviar email de recuperação",
+        });
+      } else {
+        setMessage({
+          type: "success",
+          text: "Email de recuperação enviado! Verifique sua caixa de entrada.",
+        });
+
+        setForgotForm({ email: "" });
+
+        setTimeout(() => {
+          setActiveTab("login");
+          setMessage(null);
+        }, 3000);
+      }
+    } catch (error) {
+      console.error("Erro na recuperação:", error);
+      setMessage({ type: "error", text: "Erro interno. Tente novamente." });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // LOGIN SOCIAL - só mensagem, implementar depois
-  const socialLogin = (provider: string) => {
-    setMessage({ type: "success", text: `Redirecionando para ${provider}...` });
+  // LOGIN SOCIAL - implementação básica
+  const socialLogin = async (provider: "google" | "facebook" | "github") => {
+    try {
+      setIsLoading(true);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: window.location.origin,
+        },
+      });
+
+      if (error) {
+        setMessage({ type: "error", text: `Erro ao conectar com ${provider}` });
+      }
+    } catch (error) {
+      console.error(`Erro no login ${provider}:`, error);
+      setMessage({ type: "error", text: "Erro interno. Tente novamente." });
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  const renderFormField = (
+    label: string,
+    type: string,
+    value: string,
+    onChange: (value: string) => void,
+    placeholder: string,
+    icon: React.ReactNode,
+    error?: string,
+    showPasswordToggle?: boolean,
+    showPassword?: boolean,
+    onTogglePassword?: () => void
+  ) => (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        {label}
+      </label>
+      <div className="relative">
+        <input
+          type={
+            showPasswordToggle ? (showPassword ? "text" : "password") : type
+          }
+          required
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={`w-full px-4 py-3 pl-10 ${
+            showPasswordToggle ? "pr-10" : ""
+          } border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+            error ? "border-red-300 bg-red-50" : "border-gray-300"
+          }`}
+          placeholder={placeholder}
+        />
+        {icon && (
+          <div className="absolute left-3 top-3.5 text-gray-400">{icon}</div>
+        )}
+        {showPasswordToggle && onTogglePassword && (
+          <button
+            type="button"
+            onClick={onTogglePassword}
+            className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600 transition-colors"
+            tabIndex={-1}
+          >
+            {showPassword ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
+          </button>
+        )}
+      </div>
+      {error && (
+        <p className="mt-1 text-sm text-red-600 flex items-center">
+          <AlertCircle className="h-3 w-3 mr-1" />
+          {error}
+        </p>
+      )}
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center space-x-2 mb-4">
-            <div className="w-10 h-10  from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-              <img src="/logo02.webp" alt="" />
+            <div className="w-10 h-10    rounded-lg flex items-center justify-center ">
+              <img
+                src="/logo02.webp"
+                alt="Nectix"
+                className="w-8 h-8 object-contain"
+              />
             </div>
-            <span className="text-xl font-bold text-gray-800">IArt</span>
+            <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Nectix
+            </span>
           </div>
           <p className="text-gray-600">Sua loja de produtos digitais</p>
         </div>
 
         {/* Main Card */}
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+          {/* Header com botão de fechar */}
+          {onClose && (
+            <div className="flex justify-end p-4 pb-0">
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="Fechar"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          )}
+
           {/* Tabs */}
           <div className="flex border-b border-gray-200">
             <button
               onClick={() => setActiveTab("login")}
-              className={`flex-1 py-4 px-6 text-sm font-medium transition-colors ${
+              className={`flex-1 py-4 px-6 text-sm font-medium transition-all duration-200 ${
                 activeTab === "login"
                   ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50"
-                  : "text-gray-500 hover:text-gray-700"
+                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
               }`}
             >
               Entrar
             </button>
             <button
               onClick={() => setActiveTab("register")}
-              className={`flex-1 py-4 px-6 text-sm font-medium transition-colors ${
+              className={`flex-1 py-4 px-6 text-sm font-medium transition-all duration-200 ${
                 activeTab === "register"
                   ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50"
-                  : "text-gray-500 hover:text-gray-700"
+                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
               }`}
             >
               Criar Conta
@@ -197,16 +455,18 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose }) => {
             {/* Message */}
             {message && (
               <div
-                className={`mb-4 p-3 rounded-lg flex items-center space-x-2 ${
+                className={`mb-4 p-3 rounded-lg flex items-center space-x-2 transition-all duration-200 ${
                   message.type === "success"
                     ? "bg-green-50 text-green-700 border border-green-200"
-                    : "bg-red-50 text-red-700 border border-red-200"
+                    : message.type === "error"
+                    ? "bg-red-50 text-red-700 border border-red-200"
+                    : "bg-blue-50 text-blue-700 border border-blue-200"
                 }`}
               >
                 {message.type === "success" ? (
-                  <CheckCircle className="h-4 w-4" />
+                  <CheckCircle className="h-4 w-4 flex-shrink-0" />
                 ) : (
-                  <AlertCircle className="h-4 w-4" />
+                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
                 )}
                 <span className="text-sm">{message.text}</span>
               </div>
@@ -215,55 +475,28 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose }) => {
             {/* Login Form */}
             {activeTab === "login" && (
               <form onSubmit={handleLogin} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="email"
-                      required
-                      value={loginForm.email}
-                      onChange={(e) =>
-                        setLoginForm({ ...loginForm, email: e.target.value })
-                      }
-                      className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="seu@email.com"
-                    />
-                    <Mail className="absolute left-3 top-3.5 h-4 w-4 text-gray-400" />
-                  </div>
-                </div>
+                {renderFormField(
+                  "Email",
+                  "email",
+                  loginForm.email,
+                  (value) => setLoginForm({ ...loginForm, email: value }),
+                  "seu@email.com",
+                  <Mail className="h-4 w-4" />,
+                  formErrors.email
+                )}
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Senha
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      required
-                      value={loginForm.password}
-                      onChange={(e) =>
-                        setLoginForm({ ...loginForm, password: e.target.value })
-                      }
-                      className="w-full px-4 py-3 pl-10 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Sua senha"
-                    />
-                    <Lock className="absolute left-3 top-3.5 h-4 w-4 text-gray-400" />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600"
-                      tabIndex={-1}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
+                {renderFormField(
+                  "Senha",
+                  "password",
+                  loginForm.password,
+                  (value) => setLoginForm({ ...loginForm, password: value }),
+                  "Sua senha",
+                  <Lock className="h-4 w-4" />,
+                  formErrors.password,
+                  true,
+                  showPassword,
+                  () => setShowPassword(!showPassword)
+                )}
 
                 <div className="flex items-center justify-between">
                   <label className="flex items-center">
@@ -285,7 +518,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose }) => {
                   <button
                     type="button"
                     onClick={() => setActiveTab("forgot")}
-                    className="text-sm text-blue-600 hover:text-blue-700"
+                    className="text-sm text-blue-600 hover:text-blue-700 transition-colors"
                   >
                     Esqueci minha senha
                   </button>
@@ -294,10 +527,10 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose }) => {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all duration-300 flex items-center justify-center space-x-2 disabled:opacity-50"
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all duration-300 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
                 >
                   {isLoading ? (
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <Loader2 className="w-5 h-5 animate-spin" />
                   ) : (
                     <>
                       <span>Entrar</span>
@@ -311,145 +544,99 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose }) => {
             {/* Register Form */}
             {activeTab === "register" && (
               <form onSubmit={handleRegister} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nome Completo
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      required
-                      value={registerForm.name}
-                      onChange={(e) =>
-                        setRegisterForm({
-                          ...registerForm,
-                          name: e.target.value,
-                        })
-                      }
-                      className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Seu nome completo"
-                    />
-                    <User className="absolute left-3 top-3.5 h-4 w-4 text-gray-400" />
-                  </div>
-                </div>
+                {renderFormField(
+                  "Nome Completo",
+                  "text",
+                  registerForm.name,
+                  (value) => setRegisterForm({ ...registerForm, name: value }),
+                  "Seu nome completo",
+                  <User className="h-4 w-4" />,
+                  formErrors.name
+                )}
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="email"
-                      required
-                      value={registerForm.email}
-                      onChange={(e) =>
-                        setRegisterForm({
-                          ...registerForm,
-                          email: e.target.value,
-                        })
-                      }
-                      className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="seu@email.com"
-                    />
-                    <Mail className="absolute left-3 top-3.5 h-4 w-4 text-gray-400" />
-                  </div>
-                </div>
+                {renderFormField(
+                  "Email",
+                  "email",
+                  registerForm.email,
+                  (value) => setRegisterForm({ ...registerForm, email: value }),
+                  "seu@email.com",
+                  <Mail className="h-4 w-4" />,
+                  formErrors.email
+                )}
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Senha
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      required
-                      value={registerForm.password}
-                      onChange={(e) =>
-                        setRegisterForm({
-                          ...registerForm,
-                          password: e.target.value,
-                        })
-                      }
-                      className="w-full px-4 py-3 pl-10 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Mínimo 8 caracteres"
-                    />
-                    <Lock className="absolute left-3 top-3.5 h-4 w-4 text-gray-400" />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600"
-                      tabIndex={-1}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
+                {renderFormField(
+                  "Senha",
+                  "password",
+                  registerForm.password,
+                  (value) =>
+                    setRegisterForm({ ...registerForm, password: value }),
+                  "Mínimo 8 caracteres",
+                  <Lock className="h-4 w-4" />,
+                  formErrors.password,
+                  true,
+                  showPassword,
+                  () => setShowPassword(!showPassword)
+                )}
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Confirmar Senha
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showConfirmPassword ? "text" : "password"}
-                      required
-                      value={registerForm.confirmPassword}
-                      onChange={(e) =>
-                        setRegisterForm({
-                          ...registerForm,
-                          confirmPassword: e.target.value,
-                        })
-                      }
-                      className="w-full px-4 py-3 pl-10 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Confirme sua senha"
-                    />
-                    <Lock className="absolute left-3 top-3.5 h-4 w-4 text-gray-400" />
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setShowConfirmPassword(!showConfirmPassword)
-                      }
-                      className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600"
-                      tabIndex={-1}
-                    >
-                      {showConfirmPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
+                {renderFormField(
+                  "Confirmar Senha",
+                  "password",
+                  registerForm.confirmPassword,
+                  (value) =>
+                    setRegisterForm({
+                      ...registerForm,
+                      confirmPassword: value,
+                    }),
+                  "Confirme sua senha",
+                  <Lock className="h-4 w-4" />,
+                  formErrors.confirmPassword,
+                  true,
+                  showConfirmPassword,
+                  () => setShowConfirmPassword(!showConfirmPassword)
+                )}
 
                 <div className="space-y-3">
-                  <label className="flex items-start">
-                    <input
-                      type="checkbox"
-                      checked={registerForm.acceptTerms}
-                      onChange={(e) =>
-                        setRegisterForm({
-                          ...registerForm,
-                          acceptTerms: e.target.checked,
-                        })
-                      }
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mt-1"
-                    />
-                    <span className="ml-2 text-sm text-gray-600">
-                      Aceito os{" "}
-                      <a href="#" className="text-blue-600 hover:text-blue-700">
-                        termos de uso
-                      </a>{" "}
-                      e
-                      <a href="#" className="text-blue-600 hover:text-blue-700">
-                        {" "}
-                        política de privacidade
-                      </a>
-                    </span>
-                  </label>
+                  <div>
+                    <label className="flex items-start">
+                      <input
+                        type="checkbox"
+                        checked={registerForm.acceptTerms}
+                        onChange={(e) =>
+                          setRegisterForm({
+                            ...registerForm,
+                            acceptTerms: e.target.checked,
+                          })
+                        }
+                        className={`rounded border-gray-300 text-blue-600 focus:ring-blue-500 mt-1 ${
+                          formErrors.terms ? "border-red-300" : ""
+                        }`}
+                      />
+                      <span className="ml-2 text-sm text-gray-600">
+                        Aceito os{" "}
+                        <a
+                          href="/terms"
+                          target="_blank"
+                          className="text-blue-600 hover:text-blue-700 underline"
+                        >
+                          termos de uso
+                        </a>{" "}
+                        e{" "}
+                        <a
+                          href="/privacy"
+                          target="_blank"
+                          className="text-blue-600 hover:text-blue-700 underline"
+                        >
+                          política de privacidade
+                        </a>
+                      </span>
+                    </label>
+                    {formErrors.terms && (
+                      <p className="mt-1 text-sm text-red-600 flex items-center ml-6">
+                        <AlertCircle className="h-3 w-3 mr-1" />
+                        {formErrors.terms}
+                      </p>
+                    )}
+                  </div>
 
                   <label className="flex items-center">
                     <input
@@ -472,10 +659,10 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose }) => {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all duration-300 flex items-center justify-center space-x-2 disabled:opacity-50"
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all duration-300 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
                 >
                   {isLoading ? (
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <Loader2 className="w-5 h-5 animate-spin" />
                   ) : (
                     <>
                       <span>Criar Conta</span>
@@ -500,35 +687,23 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose }) => {
                 </div>
 
                 <form onSubmit={handleForgotPassword} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Email
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="email"
-                        required
-                        value={forgotForm.email}
-                        onChange={(e) =>
-                          setForgotForm({
-                            ...forgotForm,
-                            email: e.target.value,
-                          })
-                        }
-                        className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="seu@email.com"
-                      />
-                      <Mail className="absolute left-3 top-3.5 h-4 w-4 text-gray-400" />
-                    </div>
-                  </div>
+                  {renderFormField(
+                    "Email",
+                    "email",
+                    forgotForm.email,
+                    (value) => setForgotForm({ ...forgotForm, email: value }),
+                    "seu@email.com",
+                    <Mail className="h-4 w-4" />,
+                    formErrors.email
+                  )}
 
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all duration-300 flex items-center justify-center space-x-2 disabled:opacity-50"
+                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all duration-300 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
                   >
                     {isLoading ? (
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <Loader2 className="w-5 h-5 animate-spin" />
                     ) : (
                       <>
                         <span>Enviar Email</span>
@@ -542,8 +717,9 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose }) => {
                   onClick={() => {
                     setActiveTab("login");
                     setMessage(null);
+                    setFormErrors({});
                   }}
-                  className="w-full text-center text-blue-600 hover:text-blue-700 mt-4"
+                  className="w-full text-center text-blue-600 hover:text-blue-700 mt-4 transition-colors"
                 >
                   Voltar para o login
                 </button>
@@ -553,28 +729,49 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose }) => {
             {/* Social Login */}
             {(activeTab === "login" || activeTab === "register") && (
               <div className="mt-6 border-t border-gray-200 pt-6">
-                <p className="text-center text-gray-500 mb-3">Ou entre com</p>
-                <div className="flex justify-center gap-6">
+                <p className="text-center text-gray-500 mb-4 text-sm">
+                  Ou continue com
+                </p>
+                <div className="flex justify-center gap-4">
                   <button
-                    onClick={() => socialLogin("Google")}
-                    className="p-2 rounded-full border border-gray-300 hover:bg-gray-100 transition"
-                    aria-label="Entrar com Google"
+                    onClick={() => socialLogin("google")}
+                    disabled={isLoading}
+                    className="p-3 rounded-full border border-gray-300 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    aria-label="Continuar com Google"
                   >
-                    <Google className="h-6 w-6 text-red-500" />
+                    <svg className="h-5 w-5" viewBox="0 0 24 24">
+                      <path
+                        fill="#4285F4"
+                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                      />
+                      <path
+                        fill="#34A853"
+                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                      />
+                      <path
+                        fill="#FBBC05"
+                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                      />
+                      <path
+                        fill="#EA4335"
+                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                      />
+                    </svg>
                   </button>
+
                   <button
-                    onClick={() => socialLogin("Facebook")}
-                    className="p-2 rounded-full border border-gray-300 hover:bg-gray-100 transition"
-                    aria-label="Entrar com Facebook"
+                    onClick={() => socialLogin("github")}
+                    disabled={isLoading}
+                    className="p-3 rounded-full border border-gray-300 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    aria-label="Continuar com GitHub"
                   >
-                    <Facebook className="h-6 w-6 text-blue-700" />
-                  </button>
-                  <button
-                    onClick={() => socialLogin("GitHub")}
-                    className="p-2 rounded-full border border-gray-300 hover:bg-gray-100 transition"
-                    aria-label="Entrar com GitHub"
-                  >
-                    <Github className="h-6 w-6 text-gray-900" />
+                    <svg
+                      className="h-5 w-5 text-gray-900"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M12 0C5.374 0 0 5.373 0 12 0 17.302 3.438 21.8 8.207 23.387c.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z" />
+                    </svg>
                   </button>
                 </div>
               </div>

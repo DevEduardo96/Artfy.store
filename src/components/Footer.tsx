@@ -12,7 +12,7 @@ const Footer: React.FC = () => {
               <div className="w-10 h-10  from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
                 <img src="/logowhite.webp" alt="" />
               </div>
-              <span className="text-xl font-bold text-white">IArt</span>
+              <span className="text-xl font-bold text-white">Nectix</span>
             </div>
             <p className="text-gray-400">
               Sua loja de produtos digitais premium. Cursos, e-books e templates
@@ -116,7 +116,7 @@ const Footer: React.FC = () => {
         </div>
 
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-          <p>&copy; 2025 !Art. Todos os direitos reservados.</p>
+          <p>&copy; 2025 Eduardo Araujo. Todos os direitos reservados.</p>
         </div>
       </div>
     </footer>
