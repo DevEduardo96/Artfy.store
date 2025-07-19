@@ -1,13 +1,5 @@
 import React from "react";
-import {
-  Mail,
-  Phone,
-  MapPin,
-  Facebook,
-  Twitter,
-  Instagram,
-  Youtube,
-} from "lucide-react";
+import { Mail, Phone, MapPin } from "lucide-react";
 
 const Footer: React.FC = () => {
   return (
@@ -27,30 +19,30 @@ const Footer: React.FC = () => {
               para acelerar seu crescimento.
             </p>
             <div className="flex space-x-4">
-              <a
+              {/*<a
                 href="#"
                 className="text-gray-400 hover:text-blue-400 transition-colors"
               >
                 <Facebook className="h-5 w-5" />
-              </a>
-              <a
+              </a>*/}
+              {/*<a
                 href="#"
                 className="text-gray-400 hover:text-blue-400 transition-colors"
               >
                 <Twitter className="h-5 w-5" />
-              </a>
-              <a
-                href="#"
+              </a>*/}
+              {/*<a
+                href="https://www.instagram.com/kuchil4_/"
                 className="text-gray-400 hover:text-blue-400 transition-colors"
               >
                 <Instagram className="h-5 w-5" />
               </a>
-              <a
+             <a
                 href="#"
                 className="text-gray-400 hover:text-blue-400 transition-colors"
               >
                 <Youtube className="h-5 w-5" />
-              </a>
+              </a>*/}
             </div>
           </div>
 
@@ -66,11 +58,6 @@ const Footer: React.FC = () => {
               <li>
                 <a href="#" className="hover:text-white transition-colors">
                   Produtos
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-white transition-colors">
-                  Blog
                 </a>
               </li>
               <li>
@@ -114,22 +101,22 @@ const Footer: React.FC = () => {
             <ul className="space-y-3 text-gray-400">
               <li className="flex items-center space-x-2">
                 <Mail className="h-4 w-4" />
-                <span>contato@digitalstore.com</span>
+                <span>eleccshopping@gmail.com</span>
               </li>
               <li className="flex items-center space-x-2">
                 <Phone className="h-4 w-4" />
-                <span>+55 (11) 99999-9999</span>
+                <span>+55 (86) 99946-1236</span>
               </li>
               <li className="flex items-center space-x-2">
                 <MapPin className="h-4 w-4" />
-                <span>São Paulo, SP</span>
+                <span>Teresina, Pi</span>
               </li>
             </ul>
           </div>
         </div>
 
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-          <p>&copy; 2025 Artfy Store. Todos os direitos reservados.</p>
+          <p>&copy; 2025 !Art. Todos os direitos reservados.</p>
         </div>
       </div>
     </footer>
