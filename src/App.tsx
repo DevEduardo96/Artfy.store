@@ -24,7 +24,7 @@ import ResetPassword from "./components/ResetPassword";
 import UserProfile from "./pages/UserProfile";
 import { supabase } from "./supabaseClient";
 
-import ProdutosPage from "./pages/ProductsPage"; // IMPORTAR sua página produtos (corrija o nome se precisar)
+import ProdutosPage from "./pages/ProductsPage";
 
 function App() {
   const [selectedCategory, setSelectedCategory] = useState("Todos");
