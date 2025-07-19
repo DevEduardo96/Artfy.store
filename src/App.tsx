@@ -24,12 +24,13 @@ import { products } from "./data/products";
 import FavoritesPage from "./components/FavoritesPage";
 import SitesPage from "./pages/SitesPage";
 import ResetPassword from "./components/ResetPassword";
-import UserProfile from "./pages/UserProfile";
 import ProdutosPage from "./pages/ProductsPage";
+import TermsOfService from "./pages/TermsOfService";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 function App() {
   const [selectedCategory, setSelectedCategory] = useState("Todos");
-  const [showUserProfile, setShowUserProfile] = useState(false);
+  const [] = useState(false);
 
   const categories = useMemo(() => {
     const uniqueCategories = [
@@ -78,6 +79,8 @@ function App() {
                   </>
                 }
               />
+              <Route path="/terms" element={<TermsOfService />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/produtos" element={<ProdutosPage />} />
               <Route path="/suporte" element={<SupportPage />} />
               <Route

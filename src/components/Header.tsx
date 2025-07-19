@@ -61,7 +61,7 @@ const Header: React.FC = () => {
             <span className="text-xl font-bold text-gray-800">Nectix</span>
           </div>
 
-          {/* Search */}
+          {/* Search (Desktop) */}
           <div className="hidden md:flex flex-1 max-w-md mx-8">
             <div className="relative w-full">
               <input
@@ -161,6 +161,7 @@ const Header: React.FC = () => {
               )}
             </button>
 
+            {/* Botão menu mobile */}
             <button
               className="md:hidden p-2 text-gray-700"
               onClick={toggleMenu}
@@ -176,7 +177,7 @@ const Header: React.FC = () => {
 
         {/* Menu Mobile */}
         {isMenuOpen && (
-          <div className="md:hidden mt-4 pb-4">
+          <div className="md:hidden mt-4 pb-4 space-y-2 border-t pt-4">
             <div className="flex mb-4">
               <div className="relative w-full">
                 <input
@@ -187,12 +188,77 @@ const Header: React.FC = () => {
                 <Search className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
               </div>
             </div>
-            <nav className="space-y-2">
-              <button onClick={() => navigate("/")}>Home</button>
-              <button onClick={() => navigate("/ebooks")}>Ebooks</button>
-              <button onClick={() => navigate("/sites")}>Sites</button>
-              <button onClick={() => navigate("/suporte")}>Suporte</button>
-              <button onClick={() => navigate("/favorites")}>Favoritos</button>
+
+            <nav className="flex flex-col gap-2">
+              <button
+                onClick={() => {
+                  navigate("/");
+                  setIsMenuOpen(false);
+                }}
+                className="text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
+              >
+                Home
+              </button>
+              <button
+                onClick={() => {
+                  navigate("/ebooks");
+                  setIsMenuOpen(false);
+                }}
+                className="text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
+              >
+                Ebooks
+              </button>
+              <button
+                onClick={() => {
+                  navigate("/sites");
+                  setIsMenuOpen(false);
+                }}
+                className="text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
+              >
+                Sites
+              </button>
+              <button
+                onClick={() => {
+                  navigate("/suporte");
+                  setIsMenuOpen(false);
+                }}
+                className="text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
+              >
+                Suporte
+              </button>
+              <button
+                onClick={() => {
+                  navigate("/favorites");
+                  setIsMenuOpen(false);
+                }}
+                className="text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded"
+              >
+                Favoritos
+              </button>
+
+              {user ? (
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setIsMenuOpen(false);
+                  }}
+                  className="text-left px-4 py-2 text-red-600 hover:bg-gray-100 rounded flex items-center gap-2"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sair
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    navigate("/login");
+                    setIsMenuOpen(false);
+                  }}
+                  className="text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded flex items-center gap-2"
+                >
+                  <User className="h-4 w-4" />
+                  Entrar
+                </button>
+              )}
             </nav>
           </div>
         )}

@@ -16,6 +16,7 @@ import {
   Users,
 } from "lucide-react";
 import Footer from "./Footer";
+import { Link } from "react-router-dom";
 
 interface FAQItem {
   id: string;
@@ -406,20 +407,20 @@ const SupportPage: React.FC = () => {
                   Links Úteis
                 </h3>
                 <div className="space-y-3">
-                  <a
-                    href="#"
+                  <Link
+                    to={"/terms"}
                     className="flex items-center space-x-3 text-gray-700 hover:text-blue-600 transition-colors"
                   >
                     <FileText className="h-4 w-4" />
                     <span>Termos de Uso</span>
-                  </a>
-                  <a
-                    href="#"
+                  </Link>
+                  <Link
+                    to={"/privacy"}
                     className="flex items-center space-x-3 text-gray-700 hover:text-blue-600 transition-colors"
                   >
                     <FileText className="h-4 w-4" />
                     <span>Política de Privacidade</span>
-                  </a>
+                  </Link>
                   <a
                     href="#"
                     className="flex items-center space-x-3 text-gray-700 hover:text-blue-600 transition-colors"
