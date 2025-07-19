@@ -1,5 +1,6 @@
 import React from "react";
-import { Mail, Phone, MapPin } from "lucide-react";
+import { Mail, Phone, MapPin, FileText } from "lucide-react";
+import { Link } from "react-router";
 
 const Footer: React.FC = () => {
   return (
@@ -51,47 +52,53 @@ const Footer: React.FC = () => {
             <h3 className="font-semibold mb-4">Links Rápidos</h3>
             <ul className="space-y-2 text-gray-400">
               <li>
-                <a href="#" className="hover:text-white transition-colors">
+                <Link
+                  to={"sobre"}
+                  className="hover:text-white transition-colors"
+                >
                   Sobre Nós
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">
+                <Link
+                  to={"/produtos"}
+                  className="hover:text-white transition-colors"
+                >
                   Produtos
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">
+                <Link
+                  to={"/suporte"}
+                  className="hover:text-white transition-colors"
+                >
                   Contato
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
 
           {/* Categories */}
           <div>
-            <h3 className="font-semibold mb-4">Categorias</h3>
+            <h3 className="font-semibold mb-4">Links Úteis</h3>
             <ul className="space-y-2 text-gray-400">
               <li>
-                <a href="#" className="hover:text-white transition-colors">
-                  Programação
-                </a>
+                <Link
+                  to={"/privacy"}
+                  className="hover:text-white transition-colors"
+                >
+                  <span>Política de Privacidade</span>
+                </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition-colors">
-                  Design
-                </a>
+                <Link
+                  to={"/terms"}
+                  className="hover:text-white transition-colors"
+                >
+                  <span>Termos de Uso</span>
+                </Link>
               </li>
-              <li>
-                <a href="#" className="hover:text-white transition-colors">
-                  Marketing
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-white transition-colors">
-                  Templates
-                </a>
-              </li>
+              <li></li>
             </ul>
           </div>
 

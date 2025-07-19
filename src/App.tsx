@@ -27,6 +27,7 @@ import ResetPassword from "./components/ResetPassword";
 import ProdutosPage from "./pages/ProductsPage";
 import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import AboutUs from "./pages/AboutUs";
 
 function App() {
   const [selectedCategory, setSelectedCategory] = useState("Todos");
@@ -80,6 +81,7 @@ function App() {
                 }
               />
               <Route path="/terms" element={<TermsOfService />} />
+              <Route path="/sobre" element={<AboutUs />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/produtos" element={<ProdutosPage />} />
               <Route path="/suporte" element={<SupportPage />} />

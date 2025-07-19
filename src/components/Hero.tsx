@@ -12,21 +12,24 @@ const Hero: React.FC = () => {
           <div className="space-y-6 text-center lg:text-left">
             <div className="inline-flex items-center space-x-2 bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-sm font-medium mx-auto lg:mx-0">
               <Star className="h-4 w-4 fill-current" />
-              <span>Produtos Digitais Premium</span>
+              <span>
+                Agência criativa focada em sites personalizados e produtos
+                digitais premium.
+              </span>
             </div>
 
             <h1 className="text-3xl sm:text-4xl lg:text-6xl font-bold text-gray-800 leading-tight">
-              Acelere seu
+              Destaque-se no
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
                 {" "}
-                aprendizado{" "}
+                Digital{" "}
               </span>
-              com conteúdo de qualidade
+              com sites, Apps, e-books e templates.
             </h1>
 
             <p className="text-base sm:text-lg text-gray-600 max-w-xl mx-auto lg:mx-0">
-              Descubra cursos, e-books e templates criados por especialistas
-              para impulsionar sua carreira e projetos.
+              Da criação de sites e apps à venda de produtos digitais: tudo para
+              você crescer no mundo digital.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
