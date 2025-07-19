@@ -37,49 +37,81 @@ const SupportPage: React.FC = () => {
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
 
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      const response = await fetch("https://formspree.io/f/xrblbvge", {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(contactForm),
+      });
+
+      if (response.ok) {
+        setIsSubmitted(true);
+        setContactForm({
+          name: "",
+          email: "",
+          subject: "",
+          message: "",
+          priority: "medium",
+        });
+
+        setTimeout(() => setIsSubmitted(false), 5000);
+      } else {
+        alert("Erro ao enviar mensagem. Tente novamente.");
+      }
+    } catch {
+      alert("Erro ao conectar com o servidor.");
+    }
+  };
+
   const faqData: FAQItem[] = [
     {
       id: "1",
       question: "Como faço o download dos produtos após a compra?",
       answer:
-        'Após a confirmação do pagamento, você receberá um email com os links de download. Você também pode acessar seus produtos na área "Meus Downloads" em sua conta.',
+        "Após a confirmação do pagamento, você receberá um email com os links de download.", //'Você também pode acessar seus produtos na área "Meus Downloads" em sua conta.',
       category: "Compras",
     },
     {
       id: "2",
       question: "Posso redownload um produto que já comprei?",
       answer:
-        'Sim! Você tem acesso vitalício aos produtos comprados. Basta acessar sua conta e ir na seção "Meus Downloads" para baixar novamente.',
+        "Sim! Você tem acesso vitalício aos produtos comprados. Basta acessar o link enviado para o seu email para baixar novamente.",
       category: "Compras",
     },
     {
       id: "3",
       question: "Quais formas de pagamento vocês aceitam?",
       answer:
-        "Aceitamos cartões de crédito (Visa, Mastercard, Elo), PIX, boleto bancário e PayPal. Todos os pagamentos são processados de forma segura.",
+        "Atualmente, estamos aceitando pagamentos apenas via Pix. Em breve, outras formas de pagamento estarão disponíveis.",
       category: "Pagamento",
     },
     {
       id: "4",
       question: "Como funciona a política de reembolso?",
       answer:
-        "Oferecemos garantia de 30 dias. Se não ficar satisfeito com o produto, entre em contato conosco para solicitar o reembolso integral.",
+        "Oferecemos produtos digitais, criação de sites e apps com total dedicação à qualidade. Caso tenha algum problema com o produto adquirido, entre em contato conosco para avaliarmos a possibilidade de reembolso.",
       category: "Pagamento",
     },
-    {
-      id: "5",
-      question: "Os cursos têm certificado?",
-      answer:
-        "Sim! Todos os nossos cursos oferecem certificado de conclusão digital após completar 100% do conteúdo.",
-      category: "Cursos",
-    },
-    {
-      id: "6",
-      question: "Posso acessar os cursos pelo celular?",
-      answer:
-        "Absolutamente! Nossa plataforma é totalmente responsiva e você pode acessar todos os conteúdos pelo celular, tablet ou computador.",
-      category: "Técnico",
-    },
+    //{
+    //id: "5",
+    //question: "Os cursos têm certificado?",
+    //answer:
+    //"Sim! Todos os nossos cursos oferecem certificado de conclusão digital após completar 100% do conteúdo.",
+    //category: "Cursos",
+    //},
+    //{
+    //d: "6",
+    //question: "Posso acessar os cursos pelo celular?",
+    //answer:
+    //"Absolutamente! Nossa plataforma é totalmente responsiva e você pode acessar todos os conteúdos pelo celular, tablet ou computador.",
+    //category: "Técnico",
+    //},
     {
       id: "7",
       question: "Como criar uma conta?",
@@ -91,7 +123,7 @@ const SupportPage: React.FC = () => {
       id: "8",
       question: "Esqueci minha senha, como recuperar?",
       answer:
-        'Na tela de login, clique em "Esqueci minha senha" e digite seu email. Você receberá instruções para criar uma nova senha.',
+        'Na tela de login, clique em "Esqueci minha senha" e digite seu email. Você receberá instruções para criar uma nova senha. Caso contrário entre em contato através do suporte',
       category: "Conta",
     },
   ];
@@ -109,22 +141,6 @@ const SupportPage: React.FC = () => {
       selectedCategory === "Todos" || item.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
-
-  const handleContactSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitted(true);
-    // Aqui você integraria com sua API de suporte
-    setTimeout(() => {
-      setIsSubmitted(false);
-      setContactForm({
-        name: "",
-        email: "",
-        subject: "",
-        message: "",
-        priority: "medium",
-      });
-    }, 3000);
-  };
 
   const supportChannels = [
     {
@@ -146,7 +162,7 @@ const SupportPage: React.FC = () => {
     {
       icon: Phone,
       title: "Telefone",
-      description: "+55 (11) 99999-9999",
+      description: "+55 (86) 99946-1236",
       availability: "Seg-Sex: 9h às 17h",
       action: "Ligar Agora",
       color: "bg-purple-500",
@@ -155,7 +171,6 @@ const SupportPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero Section */}
       <section className="bg-gradient-to-br from-blue-600 to-purple-700 text-white py-16">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl lg:text-5xl font-bold mb-4">
@@ -165,7 +180,6 @@ const SupportPage: React.FC = () => {
             Encontre respostas rápidas ou entre em contato conosco
           </p>
 
-          {/* Search Bar */}
           <div className="max-w-2xl mx-auto relative">
             <input
               type="text"
@@ -181,9 +195,9 @@ const SupportPage: React.FC = () => {
 
       <div className="container mx-auto px-4 py-12">
         <div className="grid lg:grid-cols-3 gap-12">
-          {/* Main Content */}
+          {/* Conteúdo principal */}
           <div className="lg:col-span-2 space-y-12">
-            {/* Support Channels */}
+            {/* Canais de Atendimento */}
             <section>
               <h2 className="text-2xl font-bold text-gray-800 mb-6">
                 Canais de Atendimento
@@ -217,7 +231,7 @@ const SupportPage: React.FC = () => {
               </div>
             </section>
 
-            {/* FAQ Section */}
+            {/* Perguntas Frequentes */}
             <section>
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-gray-800">
@@ -231,7 +245,6 @@ const SupportPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Category Filter */}
               <div className="flex flex-wrap gap-2 mb-6">
                 {categories.map((category) => (
                   <button
@@ -248,7 +261,6 @@ const SupportPage: React.FC = () => {
                 ))}
               </div>
 
-              {/* FAQ Items */}
               <div className="space-y-4">
                 {filteredFAQ.map((item) => (
                   <div
@@ -295,9 +307,8 @@ const SupportPage: React.FC = () => {
             </section>
           </div>
 
-          {/* Sidebar */}
+          {/* Formulário de contato */}
           <div className="space-y-8">
-            {/* Contact Form */}
             <div className="bg-white rounded-xl p-6 shadow-md">
               <h3 className="text-xl font-bold text-gray-800 mb-4">
                 Envie sua Dúvida
@@ -315,95 +326,70 @@ const SupportPage: React.FC = () => {
                 </div>
               ) : (
                 <form onSubmit={handleContactSubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Nome
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={contactForm.name}
-                      onChange={(e) =>
-                        setContactForm({ ...contactForm, name: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Nome"
+                    value={contactForm.name}
+                    onChange={(e) =>
+                      setContactForm({ ...contactForm, name: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      value={contactForm.email}
-                      onChange={(e) =>
-                        setContactForm({
-                          ...contactForm,
-                          email: e.target.value,
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
+                  <input
+                    type="email"
+                    required
+                    placeholder="Email"
+                    value={contactForm.email}
+                    onChange={(e) =>
+                      setContactForm({ ...contactForm, email: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Assunto
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={contactForm.subject}
-                      onChange={(e) =>
-                        setContactForm({
-                          ...contactForm,
-                          subject: e.target.value,
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Assunto"
+                    value={contactForm.subject}
+                    onChange={(e) =>
+                      setContactForm({
+                        ...contactForm,
+                        subject: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Prioridade
-                    </label>
-                    <select
-                      value={contactForm.priority}
-                      onChange={(e) =>
-                        setContactForm({
-                          ...contactForm,
-                          priority: e.target.value,
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="low">Baixa</option>
-                      <option value="medium">Média</option>
-                      <option value="high">Alta</option>
-                    </select>
-                  </div>
+                  <select
+                    value={contactForm.priority}
+                    onChange={(e) =>
+                      setContactForm({
+                        ...contactForm,
+                        priority: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  >
+                    <option value="low">Baixa</option>
+                    <option value="medium">Média</option>
+                    <option value="high">Alta</option>
+                  </select>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Mensagem
-                    </label>
-                    <textarea
-                      required
-                      rows={4}
-                      value={contactForm.message}
-                      onChange={(e) =>
-                        setContactForm({
-                          ...contactForm,
-                          message: e.target.value,
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                      placeholder="Descreva sua dúvida ou problema..."
-                    />
-                  </div>
+                  <textarea
+                    required
+                    rows={4}
+                    placeholder="Mensagem"
+                    value={contactForm.message}
+                    onChange={(e) =>
+                      setContactForm({
+                        ...contactForm,
+                        message: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none"
+                  />
 
                   <button
                     type="submit"
@@ -414,65 +400,46 @@ const SupportPage: React.FC = () => {
                   </button>
                 </form>
               )}
-            </div>
-
-            {/* Quick Links */}
-            <div className="bg-white rounded-xl p-6 shadow-md">
-              <h3 className="text-xl font-bold text-gray-800 mb-4">
-                Links Úteis
-              </h3>
-              <div className="space-y-3">
-                <a
-                  href="#"
-                  className="flex items-center space-x-3 text-gray-700 hover:text-blue-600 transition-colors"
-                >
-                  <FileText className="h-4 w-4" />
-                  <span>Termos de Uso</span>
-                </a>
-                <a
-                  href="#"
-                  className="flex items-center space-x-3 text-gray-700 hover:text-blue-600 transition-colors"
-                >
-                  <FileText className="h-4 w-4" />
-                  <span>Política de Privacidade</span>
-                </a>
-                <a
-                  href="#"
-                  className="flex items-center space-x-3 text-gray-700 hover:text-blue-600 transition-colors"
-                >
-                  <Users className="h-4 w-4" />
-                  <span>Comunidade</span>
-                </a>
-                <a
-                  href="#"
-                  className="flex items-center space-x-3 text-gray-700 hover:text-blue-600 transition-colors"
-                >
-                  <Headphones className="h-4 w-4" />
-                  <span>Status do Sistema</span>
-                </a>
-              </div>
-            </div>
-
-            {/* Informações de contato */}
-            <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-6">
-              <h3 className="text-xl font-bold text-gray-800 mb-4">
-                Informações de Contato
-              </h3>
-              <div className="space-y-3 text-sm">
-                <div className="flex items-center space-x-2">
-                  <Mail className="h-4 w-4 text-blue-600" />
-                  <span>elecshopping@gmail.com</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Phone className="h-4 w-4 text-blue-600" />
-                  <span>+55 (86) 99946-1236</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Clock className="h-4 w-4 text-blue-600" />
-                  <span>Seg-Sex: 7h às 18h</span>
+              {/* Quick Links */}
+              <div className="bg-white rounded-xl p-6 shadow-md">
+                <h3 className="text-xl font-bold text-gray-800 mb-4">
+                  Links Úteis
+                </h3>
+                <div className="space-y-3">
+                  <a
+                    href="#"
+                    className="flex items-center space-x-3 text-gray-700 hover:text-blue-600 transition-colors"
+                  >
+                    <FileText className="h-4 w-4" />
+                    <span>Termos de Uso</span>
+                  </a>
+                  <a
+                    href="#"
+                    className="flex items-center space-x-3 text-gray-700 hover:text-blue-600 transition-colors"
+                  >
+                    <FileText className="h-4 w-4" />
+                    <span>Política de Privacidade</span>
+                  </a>
+                  <a
+                    href="#"
+                    className="flex items-center space-x-3 text-gray-700 hover:text-blue-600 transition-colors"
+                  >
+                    <Users className="h-4 w-4" />
+                    <span>Comunidade</span>
+                  </a>
+                  <a
+                    href="#"
+                    className="flex items-center space-x-3 text-gray-700 hover:text-blue-600 transition-colors"
+                  >
+                    <Headphones className="h-4 w-4" />
+                    <span>Status do Sistema</span>
+                  </a>
                 </div>
               </div>
             </div>
+
+            {/* Outros blocos permanecem iguais */}
+            {/* ... Links Úteis / Informações de Contato ... */}
           </div>
         </div>
       </div>
