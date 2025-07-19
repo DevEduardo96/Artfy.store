@@ -7,13 +7,13 @@ const Hero: React.FC = () => {
     <section className="bg-gradient-to-br from-blue-50 to-purple-50 py-12 lg:py-20">
       <div className="container mx-auto px-4">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
-          <div className="space-y-6">
-            <div className="inline-flex items-center space-x-2 bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-sm font-medium">
+          <div className="space-y-6 text-center lg:text-left">
+            <div className="inline-flex items-center space-x-2 bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-sm font-medium mx-auto lg:mx-0">
               <Star className="h-4 w-4 fill-current" />
               <span>Produtos Digitais Premium</span>
             </div>
 
-            <h1 className="text-4xl lg:text-6xl font-bold text-gray-800 leading-tight">
+            <h1 className="text-3xl sm:text-4xl lg:text-6xl font-bold text-gray-800 leading-tight">
               Acelere seu
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
                 {" "}
@@ -22,12 +22,12 @@ const Hero: React.FC = () => {
               com conteúdo de qualidade
             </h1>
 
-            <p className="text-lg text-gray-600 max-w-lg">
+            <p className="text-base sm:text-lg text-gray-600 max-w-xl mx-auto lg:mx-0">
               Descubra cursos, e-books e templates criados por especialistas
               para impulsionar sua carreira e projetos.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               <button className="flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105">
                 <span>Explorar Produtos</span>
                 <ArrowRight className="h-5 w-5" />
@@ -39,7 +39,7 @@ const Hero: React.FC = () => {
               </button>
             </div>
 
-            <div className="flex items-center space-x-8 pt-4">
+            <div className="flex justify-center lg:justify-start items-center space-x-8 pt-4">
               <div className="text-center">
                 <div className="text-2xl font-bold text-gray-800">1000+</div>
                 <div className="text-sm text-gray-600">Produtos</div>
@@ -55,15 +55,15 @@ const Hero: React.FC = () => {
             </div>
           </div>
 
-          <div className="relative">
-            <div className="relative z-10 w-[453px] h-[384px]">
+          <div className="relative w-full max-w-md mx-auto">
+            <div className="relative z-10 w-full rounded-2xl overflow-hidden aspect-[3/2]">
               <img
                 src={imgInicial}
                 alt="Aprendizado Online"
-                className="w-full h-full object-cover rounded-2xl " //shadow-2xl//
+                className="w-full h-full object-cover"
               />
             </div>
-            <div className="absolute -top-4 -right-4 w-[400px] h-[384px] bg-gradient-to-br from-blue-200 to-purple-200 rounded-2xl -z-10"></div>
+            <div className="absolute -top-2 -right-2 sm:-top-4 sm:-right-4 w-full h-full bg-gradient-to-br from-blue-200 to-purple-200 rounded-2xl -z-10"></div>
           </div>
         </div>
       </div>
