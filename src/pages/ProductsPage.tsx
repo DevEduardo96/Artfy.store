@@ -17,12 +17,15 @@ import {
   Plus,
   Minus,
   Trash2,
+  ShoppingBag,
+  Copy,
 } from "lucide-react";
+import Footer from "../components/Footer";
 
 // Types
 interface Product {
-  id: number;
-  title: string;
+  id: string;
+  name: string;
   category: string;
   price: number;
   originalPrice: number | null;
@@ -32,6 +35,8 @@ interface Product {
   badge: string | null;
   description: string;
   popularity: number;
+  fileSize: string;
+  format: string;
 }
 
 interface CartItem {
@@ -47,8 +52,8 @@ interface CartState {
 
 type CartAction =
   | { type: "ADD_ITEM"; payload: Product }
-  | { type: "REMOVE_ITEM"; payload: number }
-  | { type: "UPDATE_QUANTITY"; payload: { id: number; quantity: number } }
+  | { type: "REMOVE_ITEM"; payload: string }
+  | { type: "UPDATE_QUANTITY"; payload: { id: string; quantity: number } }
   | { type: "CLEAR_CART" }
   | { type: "TOGGLE_CART" }
   | { type: "OPEN_CART" }
@@ -184,13 +189,38 @@ const useCart = () => {
 // Cart Sidebar Component
 const CartSidebar: React.FC = () => {
   const { state, dispatch } = useCart();
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleUpdateQuantity = (id: number, quantity: number) => {
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(price);
+  };
+
+  const handleUpdateQuantity = (id: string, quantity: number) => {
     dispatch({ type: "UPDATE_QUANTITY", payload: { id, quantity } });
   };
 
-  const handleRemoveItem = (id: number) => {
+  const handleRemoveItem = (id: string) => {
     dispatch({ type: "REMOVE_ITEM", payload: id });
+  };
+
+  const finalizePurchase = async () => {
+    if (!email || !/\S+@\S+\.\S+/.test(email)) {
+      alert("Por favor, insira um e-mail válido.");
+      return;
+    }
+
+    setLoading(true);
+    // Simular processamento
+    setTimeout(() => {
+      alert("Compra finalizada com sucesso! Verifique seu e-mail.");
+      dispatch({ type: "CLEAR_CART" });
+      setEmail("");
+      setLoading(false);
+    }, 2000);
   };
 
   return (
@@ -212,10 +242,7 @@ const CartSidebar: React.FC = () => {
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b">
-            <h2 className="text-xl font-bold text-gray-800">
-              Carrinho (
-              {state.items.reduce((acc, item) => acc + item.quantity, 0)})
-            </h2>
+            <h2 className="text-xl font-bold text-gray-800">Carrinho</h2>
             <button
               onClick={() => dispatch({ type: "CLOSE_CART" })}
               className="p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -227,63 +254,94 @@ const CartSidebar: React.FC = () => {
           {/* Cart Items */}
           <div className="flex-1 overflow-y-auto p-6">
             {state.items.length === 0 ? (
-              <div className="text-center py-12">
-                <ShoppingCart className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500">Seu carrinho está vazio</p>
+              <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                <ShoppingBag className="h-16 w-16 mb-4" />
+                <p>Seu carrinho está vazio</p>
               </div>
             ) : (
               <div className="space-y-4">
                 {state.items.map((item) => (
                   <div
                     key={item.product.id}
-                    className="flex items-center space-x-4 bg-gray-50 p-4 rounded-lg"
+                    className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg"
                   >
                     <img
                       src={item.product.image}
-                      alt={item.product.title}
+                      alt={item.product.name}
                       className="w-16 h-16 object-cover rounded-lg"
                     />
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1">
                       <h3 className="font-medium text-gray-800 text-sm line-clamp-2">
-                        {item.product.title}
+                        {item.product.name}
                       </h3>
-                      <p className="text-blue-600 font-bold">
-                        R$ {item.product.price}
+                      <p className="text-blue-600 font-semibold">
+                        {formatPrice(item.product.price)}
                       </p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() =>
-                          handleUpdateQuantity(
-                            item.product.id,
-                            item.quantity - 1
-                          )
-                        }
-                        className="p-1 hover:bg-gray-200 rounded"
-                      >
-                        <Minus className="h-4 w-4" />
-                      </button>
-                      <span className="w-8 text-center">{item.quantity}</span>
-                      <button
-                        onClick={() =>
-                          handleUpdateQuantity(
-                            item.product.id,
-                            item.quantity + 1
-                          )
-                        }
-                        className="p-1 hover:bg-gray-200 rounded"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleRemoveItem(item.product.id)}
-                        className="p-1 hover:bg-red-100 hover:text-red-600 rounded ml-2"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      <div className="flex items-center space-x-2 mt-2">
+                        <button
+                          onClick={() =>
+                            handleUpdateQuantity(
+                              item.product.id,
+                              item.quantity - 1
+                            )
+                          }
+                          className="p-1 hover:bg-gray-200 rounded"
+                        >
+                          <Minus className="h-4 w-4" />
+                        </button>
+                        <span className="px-2 py-1 bg-white rounded text-sm">
+                          {item.quantity}
+                        </span>
+                        <button
+                          onClick={() =>
+                            handleUpdateQuantity(
+                              item.product.id,
+                              item.quantity + 1
+                            )
+                          }
+                          className="p-1 hover:bg-gray-200 rounded"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleRemoveItem(item.product.id)}
+                          className="p-1 hover:bg-red-100 rounded text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
+
+                {/* Email Input */}
+                <div className="mt-6">
+                  <label
+                    htmlFor="email"
+                    className="block mb-1 font-semibold text-gray-700"
+                  >
+                    Seu e-mail para receber o link de download:
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    placeholder="exemplo@dominio.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                  <div className="mb-4 p-4 bg-yellow-100 border-l-4 border-yellow-400 text-yellow-800 text-sm rounded shadow-sm mt-3">
+                    <strong className="block font-semibold mb-1">
+                      Atenção:
+                    </strong>
+                    Ao clicar em{" "}
+                    <span className="font-semibold">Finalizar Compra</span>, o
+                    pagamento pode levar alguns minutos para ser processado.
+                    <br />
+                    Por favor, aguarde até que seja finalizado.
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -296,12 +354,16 @@ const CartSidebar: React.FC = () => {
                   Total:
                 </span>
                 <span className="text-2xl font-bold text-blue-600">
-                  R$ {state.total.toFixed(2)}
+                  {formatPrice(state.total)}
                 </span>
               </div>
               <div className="space-y-3">
-                <button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-300">
-                  Finalizar Compra
+                <button
+                  onClick={finalizePurchase}
+                  disabled={loading}
+                  className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-3 rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-300 disabled:opacity-50"
+                >
+                  {loading ? "Processando..." : "Finalizar Compra"}
                 </button>
                 <button
                   onClick={() => dispatch({ type: "CLEAR_CART" })}
@@ -324,6 +386,7 @@ const ProductsPageContent: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("popular");
   const [priceFilter, setPriceFilter] = useState<string[]>([]);
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
   const categories = [
     { id: "todos", name: "Todos", count: 0 },
@@ -332,10 +395,10 @@ const ProductsPageContent: React.FC = () => {
     { id: "templates", name: "Templates", count: 0 },
   ];
 
-  const products = [
+  const products: Product[] = [
     {
-      id: 1,
-      title: "Curso Completo de Marketing Digital",
+      id: "1",
+      name: "Curso Completo de Marketing Digital",
       category: "cursos",
       price: 297,
       originalPrice: 497,
@@ -347,10 +410,12 @@ const ProductsPageContent: React.FC = () => {
       description:
         "Aprenda estratégias avançadas de marketing digital do zero ao avançado",
       popularity: 10,
+      fileSize: "2.5GB",
+      format: "MP4",
     },
     {
-      id: 2,
-      title: "E-book: Copywriting Persuasivo",
+      id: "2",
+      name: "E-book: Copywriting Persuasivo",
       category: "ebooks",
       price: 49,
       originalPrice: 89,
@@ -361,10 +426,12 @@ const ProductsPageContent: React.FC = () => {
       badge: "Novo",
       description: "Técnicas comprovadas para escrever textos que convertem",
       popularity: 8,
+      fileSize: "15MB",
+      format: "PDF",
     },
     {
-      id: 3,
-      title: "Templates de Instagram para Negócios",
+      id: "3",
+      name: "Templates de Instagram para Negócios",
       category: "templates",
       price: 67,
       originalPrice: null,
@@ -375,10 +442,12 @@ const ProductsPageContent: React.FC = () => {
       badge: null,
       description: "Pack com 100+ templates editáveis para Instagram",
       popularity: 6,
+      fileSize: "150MB",
+      format: "PSD",
     },
     {
-      id: 4,
-      title: "Curso de React e TypeScript",
+      id: "4",
+      name: "Curso de React e TypeScript",
       category: "cursos",
       price: 397,
       originalPrice: 597,
@@ -390,10 +459,12 @@ const ProductsPageContent: React.FC = () => {
       description:
         "Domine o desenvolvimento frontend moderno com React e TypeScript",
       popularity: 9,
+      fileSize: "3.2GB",
+      format: "MP4",
     },
     {
-      id: 5,
-      title: "E-book: Gestão Financeira Pessoal",
+      id: "5",
+      name: "E-book: Gestão Financeira Pessoal",
       category: "ebooks",
       price: 29,
       originalPrice: 59,
@@ -404,10 +475,12 @@ const ProductsPageContent: React.FC = () => {
       badge: null,
       description: "Guia completo para organizar suas finanças pessoais",
       popularity: 7,
+      fileSize: "8MB",
+      format: "PDF",
     },
     {
-      id: 6,
-      title: "Templates de Landing Pages",
+      id: "6",
+      name: "Templates de Landing Pages",
       category: "templates",
       price: 89,
       originalPrice: 149,
@@ -418,92 +491,8 @@ const ProductsPageContent: React.FC = () => {
       badge: "Oferta",
       description: "10 templates profissionais de landing pages responsivas",
       popularity: 5,
-    },
-    {
-      id: 7,
-      title: "Curso de Python para Data Science",
-      category: "cursos",
-      price: 347,
-      originalPrice: 497,
-      rating: 4.9,
-      reviews: 1567,
-      image:
-        "https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=400&h=300&fit=crop",
-      badge: "Mais Vendido",
-      description:
-        "Aprenda Python aplicado à ciência de dados com projetos reais",
-      popularity: 10,
-    },
-    {
-      id: 8,
-      title: "E-book: Design Thinking na Prática",
-      category: "ebooks",
-      price: 39,
-      originalPrice: 79,
-      rating: 4.7,
-      reviews: 634,
-      image:
-        "https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=400&h=300&fit=crop",
-      badge: null,
-      description: "Metodologia completa de Design Thinking com cases práticos",
-      popularity: 6,
-    },
-    {
-      id: 9,
-      title: "Templates de Apresentação Corporativa",
-      category: "templates",
-      price: 97,
-      originalPrice: 147,
-      rating: 4.8,
-      reviews: 289,
-      image:
-        "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=400&h=300&fit=crop",
-      badge: null,
-      description: "50+ slides profissionais para apresentações de negócios",
-      popularity: 4,
-    },
-    {
-      id: 10,
-      title: "Curso de UX/UI Design Completo",
-      category: "cursos",
-      price: 447,
-      originalPrice: 697,
-      rating: 4.9,
-      reviews: 892,
-      image:
-        "https://images.unsplash.com/photo-1561070791-2526d30994b5?w=400&h=300&fit=crop",
-      badge: "Premium",
-      description:
-        "Do wireframe ao protótipo: aprenda design de interfaces do zero",
-      popularity: 9,
-    },
-    {
-      id: 11,
-      title: "E-book: SEO Avançado 2024",
-      category: "ebooks",
-      price: 59,
-      originalPrice: 99,
-      rating: 4.8,
-      reviews: 743,
-      image:
-        "https://images.unsplash.com/photo-1562577309-4932fdd64cd1?w=400&h=300&fit=crop",
-      badge: "Novo",
-      description: "Estratégias atualizadas de SEO para ranquear no Google",
-      popularity: 8,
-    },
-    {
-      id: 12,
-      title: "Templates de Email Marketing",
-      category: "templates",
-      price: 79,
-      originalPrice: null,
-      rating: 4.6,
-      reviews: 156,
-      image:
-        "https://images.unsplash.com/photo-1596526131083-e8c633c948d2?w=400&h=300&fit=crop",
-      badge: null,
-      description: "25 templates responsivos para campanhas de email marketing",
-      popularity: 3,
+      fileSize: "45MB",
+      format: "HTML",
     },
   ];
 
@@ -532,7 +521,7 @@ const ProductsPageContent: React.FC = () => {
     const matchesCategory =
       selectedCategory === "todos" || product.category === selectedCategory;
     const matchesSearch =
-      product.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.description.toLowerCase().includes(searchTerm.toLowerCase());
 
     let matchesPrice = true;
@@ -560,7 +549,7 @@ const ProductsPageContent: React.FC = () => {
       case "popular":
         return b.popularity - a.popularity;
       case "newest":
-        return b.id - a.id; // Assumindo que IDs maiores são mais novos
+        return parseInt(b.id) - parseInt(a.id);
       case "price-low":
         return a.price - b.price;
       case "price-high":
@@ -584,6 +573,18 @@ const ProductsPageContent: React.FC = () => {
     dispatch({ type: "ADD_ITEM", payload: product });
   };
 
+  const toggleFavorite = (productId: string) => {
+    setFavorites((prev) => {
+      const newFavorites = new Set(prev);
+      if (newFavorites.has(productId)) {
+        newFavorites.delete(productId);
+      } else {
+        newFavorites.add(productId);
+      }
+      return newFavorites;
+    });
+  };
+
   const getBadgeColor = (badge: string | null) => {
     switch (badge) {
       case "Mais Vendido":
@@ -597,6 +598,13 @@ const ProductsPageContent: React.FC = () => {
       default:
         return "bg-gray-100 text-gray-800";
     }
+  };
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(price);
   };
 
   return (
@@ -767,7 +775,7 @@ const ProductsPageContent: React.FC = () => {
                   <div className="relative">
                     <img
                       src={product.image}
-                      alt={product.title}
+                      alt={product.name}
                       className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                     <div className="absolute top-3 left-3 flex gap-2">
@@ -780,92 +788,98 @@ const ProductsPageContent: React.FC = () => {
                           {product.badge}
                         </span>
                       )}
-                    </div>
-                    <button className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-sm hover:bg-red-50 hover:text-red-500 transition-all duration-200">
-                      <Heart className="h-4 w-4" />
-                    </button>
-                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex items-center justify-center">
-                      <button className="opacity-0 group-hover:opacity-100 bg-white text-gray-800 px-4 py-2 rounded-lg font-medium flex items-center space-x-2 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
-                        <Eye className="h-4 w-4" />
-                        <span>Ver Detalhes</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="p-6">
-                    <h3 className="font-semibold text-gray-800 mb-2 line-clamp-2">
-                      {product.title}
-                    </h3>
-                    <p className="text-gray-600 text-sm mb-3 line-clamp-2">
-                      {product.description}
-                    </p>
-
-                    <div className="flex items-center mb-3">
-                      <div className="flex items-center space-x-1">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`h-4 w-4 ${
-                              i < Math.floor(product.rating)
-                                ? "text-yellow-400 fill-current"
-                                : "text-gray-300"
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <span className="ml-2 text-sm text-gray-600">
-                        {product.rating} ({product.reviews})
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-2xl font-bold text-gray-800">
-                          R$ {product.price}
-                        </span>
-                        {product.originalPrice && (
-                          <span className="text-sm text-gray-500 line-through">
-                            R$ {product.originalPrice}
-                          </span>
-                        )}
-                      </div>
                       {product.originalPrice && (
-                        <span className="bg-red-100 text-red-800 text-xs font-medium px-2 py-1 rounded-full">
-                          -
+                        <span className="bg-red-500 text-white px-2 py-1 rounded-md text-sm font-medium">
                           {Math.round(
                             ((product.originalPrice - product.price) /
                               product.originalPrice) *
                               100
                           )}
-                          %
+                          % OFF
                         </span>
                       )}
                     </div>
-
                     <button
-                      onClick={() => handleAddToCart(product)}
-                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2"
+                      onClick={() => toggleFavorite(product.id)}
+                      className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-sm hover:bg-red-50 hover:text-red-500 transition-all duration-200"
                     >
-                      <ShoppingCart className="h-5 w-5" />
-                      <span>Adicionar ao Carrinho</span>
+                      <Heart
+                        className={`h-4 w-4 ${
+                          favorites.has(product.id)
+                            ? "fill-red-500 text-red-500"
+                            : ""
+                        }`}
+                      />
                     </button>
+                  </div>
+
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-blue-600 font-medium">
+                        {product.category}
+                      </span>
+                      <div className="flex items-center space-x-1">
+                        <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                        <span className="text-sm text-gray-600">
+                          {product.rating}
+                        </span>
+                        <span className="text-sm text-gray-400">
+                          ({product.reviews})
+                        </span>
+                      </div>
+                    </div>
+
+                    <h3 className="font-semibold text-gray-800 mb-2 line-clamp-2">
+                      {product.name}
+                    </h3>
+                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                      {product.description}
+                    </p>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-baseline space-x-2">
+                        <span className="text-lg font-bold text-gray-800">
+                          {formatPrice(product.price)}
+                        </span>
+                        {product.originalPrice && (
+                          <span className="text-sm line-through text-gray-400">
+                            {formatPrice(product.originalPrice)}
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => handleAddToCart(product)}
+                        className="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 transition-colors"
+                      >
+                        <ShoppingCart className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* Load More Button */}
-            <div className="text-center mt-12">
-              <button className="bg-white text-gray-700 px-8 py-3 rounded-lg font-semibold border-2 border-gray-200 hover:border-blue-600 hover:text-blue-600 transition-all duration-300 flex items-center space-x-2 mx-auto">
-                <span>Carregar Mais Produtos</span>
-                <ArrowRight className="h-5 w-5" />
-              </button>
-            </div>
+            {sortedProducts.length === 0 && (
+              <div className="mt-12 text-center text-gray-500">
+                Nenhum produto encontrado com os filtros aplicados.
+              </div>
+            )}
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 };
 
-export default ProductsPage;
+// Página Final
+const ProdutosPage: React.FC = () => {
+  return (
+    <CartProvider>
+      <ProductsPageContent />
+      <CartSidebar />
+    </CartProvider>
+  );
+};
+
+export default ProdutosPage;
