@@ -10,24 +10,17 @@ import {
 } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { supabase } from "../supabaseClient";
+import { useNavigate } from "react-router-dom";
 
-interface HeaderProps {
-  currentPage?: string;
-  onPageChange?: (page: string) => void;
-}
-
-const Header: React.FC<HeaderProps> = ({
-  currentPage = "home",
-  onPageChange,
-}) => {
+const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const { state, dispatch } = useCart();
+  const navigate = useNavigate();
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const openCart = () => dispatch({ type: "OPEN_CART" });
 
-  // Buscar usuário atual e escutar mudanças de autenticação
   useEffect(() => {
     const fetchUser = async () => {
       const {
@@ -50,7 +43,7 @@ const Header: React.FC<HeaderProps> = ({
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
-    if (onPageChange) onPageChange("home");
+    navigate("/");
   };
 
   return (
@@ -58,9 +51,12 @@ const Header: React.FC<HeaderProps> = ({
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <div className="flex items-center space-x-2">
-            <div className="w-10 h-10  from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-              <img src="/logo02.webp" alt="" />
+          <div
+            className="flex items-center space-x-2 cursor-pointer"
+            onClick={() => navigate("/")}
+          >
+            <div className="w-10 h-10">
+              <img src="/logo02.webp" alt="Logo" />
             </div>
             <span className="text-xl font-bold text-gray-800">IArt</span>
           </div>
@@ -79,38 +75,42 @@ const Header: React.FC<HeaderProps> = ({
 
           {/* Navegação Desktop */}
           <nav className="hidden md:flex items-center space-x-6">
-            {["home", "ebooks", "sites", "suporte"].map((page) => (
-              <button
-                key={page}
-                onClick={() => onPageChange?.(page)}
-                className={`transition-colors ${
-                  currentPage === page
-                    ? "text-blue-600"
-                    : "text-gray-700 hover:text-blue-600"
-                }`}
-              >
-                {page === "home"
-                  ? "Home"
-                  : page[0].toUpperCase() + page.slice(1)}
-              </button>
-            ))}
+            <button
+              onClick={() => navigate("/")}
+              className="text-gray-700 hover:text-blue-600"
+            >
+              Home
+            </button>
+            <button
+              onClick={() => navigate("/ebooks")}
+              className="text-gray-700 hover:text-blue-600"
+            >
+              Ebooks
+            </button>
+            <button
+              onClick={() => navigate("/sites")}
+              className="text-gray-700 hover:text-blue-600"
+            >
+              Sites
+            </button>
+            <button
+              onClick={() => navigate("/suporte")}
+              className="text-gray-700 hover:text-blue-600"
+            >
+              Suporte
+            </button>
           </nav>
 
           {/* Ações */}
           <div className="flex items-center space-x-4">
             <button
-              onClick={() => onPageChange?.("favorites")}
-              className={`p-2 transition-colors ${
-                currentPage === "favorites"
-                  ? "text-red-600"
-                  : "text-gray-700 hover:text-red-600"
-              }`}
+              onClick={() => navigate("/favorites")}
+              className="p-2 text-gray-700 hover:text-red-600 transition-colors"
               aria-label="Ver favoritos"
             >
               <Heart className="h-6 w-6" />
             </button>
 
-            {/* Menu do Usuário */}
             {user ? (
               <div className="relative group">
                 <button className="flex items-center space-x-2 p-2 text-gray-700 hover:text-blue-600 transition-colors rounded">
@@ -139,7 +139,7 @@ const Header: React.FC<HeaderProps> = ({
               </div>
             ) : (
               <button
-                onClick={() => onPageChange?.("login")}
+                onClick={() => navigate("/login")}
                 className="p-2 text-gray-700 hover:text-blue-600 transition-colors"
               >
                 <User className="h-6 w-6" />
@@ -188,28 +188,11 @@ const Header: React.FC<HeaderProps> = ({
               </div>
             </div>
             <nav className="space-y-2">
-              {["home", "ebooks", "sites", "Suporte", "favorites"].map(
-                (page) => (
-                  <button
-                    key={page}
-                    onClick={() => {
-                      onPageChange?.(page);
-                      setIsMenuOpen(false);
-                    }}
-                    className={`block py-2 w-full text-left transition-colors ${
-                      currentPage === page
-                        ? page === "favorites"
-                          ? "text-red-600"
-                          : "text-blue-600"
-                        : "text-gray-700 hover:text-blue-600"
-                    }`}
-                  >
-                    {page === "home"
-                      ? "home"
-                      : page[0].toUpperCase() + page.slice(1)}
-                  </button>
-                )
-              )}
+              <button onClick={() => navigate("/")}>Home</button>
+              <button onClick={() => navigate("/ebooks")}>Ebooks</button>
+              <button onClick={() => navigate("/sites")}>Sites</button>
+              <button onClick={() => navigate("/suporte")}>Suporte</button>
+              <button onClick={() => navigate("/favorites")}>Favoritos</button>
             </nav>
           </div>
         )}
