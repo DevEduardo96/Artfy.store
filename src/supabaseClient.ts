@@ -15,6 +15,10 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
     flowType: "pkce",
     storage: window.localStorage,
     storageKey: "supabase.auth.token",
-    debug: process.env.NODE_ENV === "development",
+    debug: false, // Desabilitado para reduzir logs
+    // Configurações para evitar refresh excessivo
+    refreshThreshold: 60, // Só refresh quando faltam 60 segundos para expirar
+    retryDelay: 2000, // 2 segundos entre tentativas
+    maxRetries: 3, // Máximo 3 tentativas de refresh
   },
 });

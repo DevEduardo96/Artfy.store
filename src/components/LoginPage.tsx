@@ -180,14 +180,20 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
         // Reset do formulário
         setLoginForm({ email: "", password: "", rememberMe: false });
 
+        // Pequeno delay para garantir que a sessão foi processada
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
         // Callback de sucesso
         if (onSuccess && data.user) {
           onSuccess(data.user);
         }
 
-        setTimeout(() => {
-          onClose?.();
-        }, 1500);
+        // Fechar modal apenas se fornecido
+        if (onClose) {
+          setTimeout(() => {
+            onClose();
+          }, 1000);
+        }
       }
     } catch (error) {
       console.error("Erro no login:", error);
@@ -244,13 +250,16 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
           newsletter: true,
         });
 
-        setTimeout(() => {
-          setActiveTab("login");
-          setMessage({
-            type: "info",
-            text: "Confirme seu email para fazer login",
-          });
-        }, 3000);
+        // Só mudar de aba se não for um modal
+        if (!onClose) {
+          setTimeout(() => {
+            setActiveTab("login");
+            setMessage({
+              type: "info",
+              text: "Confirme seu email para fazer login",
+            });
+          }, 3000);
+        }
       }
     } catch (error) {
       console.error("Erro no registro:", error);
@@ -299,10 +308,13 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
 
         setForgotForm({ email: "" });
 
-        setTimeout(() => {
-          setActiveTab("login");
-          setMessage(null);
-        }, 3000);
+        // Só mudar de aba se não for um modal
+        if (!onClose) {
+          setTimeout(() => {
+            setActiveTab("login");
+            setMessage(null);
+          }, 3000);
+        }
       }
     } catch (error) {
       console.error("Erro na recuperação:", error);
