@@ -1,17 +1,29 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { X, Plus, Minus, Trash2, ShoppingBag, Copy } from "lucide-react";
 import { useCart } from "../context/CartContext";
+import { useUser } from "../context/UserContext";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import Swal from "sweetalert2";
 
 const Cart: React.FC = () => {
   const { state, dispatch } = useCart();
+  const user = useUser();
 
   const [email, setEmail] = useState("");
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [ticketUrl, setTicketUrl] = useState<string | null>(null);
   const [pixCode, setPixCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Preenche email com o email do usuário logado, se existir
+  useEffect(() => {
+    if (user?.email) {
+      setEmail(user.email);
+    } else {
+      setEmail(""); // Limpa email se não logado
+    }
+  }, [user]);
 
   const closeCart = () => dispatch({ type: "CLOSE_CART" });
 
@@ -40,7 +52,18 @@ const Cart: React.FC = () => {
 
   const finalizePurchase = async () => {
     if (!validateEmail(email)) {
-      toast.warning("Por favor, insira um e-mail válido.");
+      Swal.fire({
+        icon: "warning",
+        title: "🚫 E-mail inválido!",
+        text: "Por favor, insira um e-mail válido para receber o link de download.",
+        toast: true,
+        position: "top",
+        showConfirmButton: false,
+        timer: 4000,
+        timerProgressBar: true,
+        background: "#fff",
+        color: "#000",
+      });
       return;
     }
 
@@ -53,7 +76,7 @@ const Cart: React.FC = () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             carrinho: state.items,
-            nomeCliente: "Cliente Teste",
+            nomeCliente: user?.email || email || "Cliente",
             email,
             total: state.total,
           }),
@@ -182,7 +205,8 @@ const Cart: React.FC = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
+                  disabled={!!user?.email} // bloqueia se usuário estiver logado
+                  required={!user?.email} // requer se não estiver logado
                 />
                 <div className="mb-4 p-4 bg-yellow-100 border-l-4 border-yellow-400 text-yellow-800 text-sm rounded shadow-sm">
                   <strong className="block font-semibold mb-1">Atenção:</strong>

@@ -1,6 +1,6 @@
 // src/App.tsx
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -29,9 +29,11 @@ import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import AboutUs from "./pages/AboutUs";
 
+import Swal from "sweetalert2";
+import "sweetalert2/dist/sweetalert2.min.css";
+
 function App() {
   const [selectedCategory, setSelectedCategory] = useState("Todos");
-  const [] = useState(false);
 
   const categories = useMemo(() => {
     const uniqueCategories = [
@@ -44,6 +46,19 @@ function App() {
     if (selectedCategory === "Todos") return products;
     return products.filter((product) => product.category === selectedCategory);
   }, [selectedCategory]);
+
+  useEffect(() => {
+    Swal.fire({
+      title: "Seja Bem-vindo(a)! 👋",
+      text: "Explore nossos produtos digitais incríveis!",
+      icon: "info",
+      showConfirmButton: false,
+      timer: 3000,
+      toast: true,
+      position: "top-end",
+      timerProgressBar: true,
+    });
+  }, []);
 
   return (
     <UserProvider>
