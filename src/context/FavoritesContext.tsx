@@ -11,7 +11,6 @@ import React, {
 } from "react";
 import { Product } from "../types";
 import { supabase } from "../supabaseClient";
-import { products } from "../data/products";
 import { useUser } from "./UserContext";
 
 interface FavoritesState {
@@ -74,12 +73,11 @@ export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({
     if (!user) return;
 
     dispatch({ type: "SET_LOADING", payload: true });
-    console.log("Carregando favoritos para usuário:", user.id);
 
     try {
       const { data: favData, error: favError } = await supabase
         .from("favorites")
-        .select("product_id")
+        .select("product_id, products(*)")
         .eq("user_id", user.id);
 
       if (favError) {
@@ -87,10 +85,14 @@ export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({
         return;
       }
 
-      const productIds = favData?.map((f) => f.product_id) ?? [];
-      const favoriteProducts = products.filter((p) =>
-        productIds.includes(p.id)
-      );
+      const favoriteProducts =
+        favData?.map((fav) => ({
+          id: fav.products?.id,
+          title: fav.products?.title,
+          image: fav.products?.image,
+          price: fav.products?.price,
+          category: fav.products?.category,
+        })) ?? [];
 
       dispatch({ type: "LOAD_FAVORITES", payload: favoriteProducts });
     } catch (error) {
@@ -131,9 +133,12 @@ export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({
 
           dispatch({ type: "REMOVE_FAVORITE", payload: product.id });
         } else {
-          const { error } = await supabase
-            .from("favorites")
-            .insert([{ user_id: user.id, product_id: product.id }]);
+          const { error } = await supabase.from("favorites").insert([
+            {
+              user_id: user.id,
+              product_id: product.id,
+            },
+          ]);
 
           if (error && error.code !== "23505") throw error;
 
