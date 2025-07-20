@@ -47,18 +47,6 @@ function App() {
     return products.filter((product) => product.category === selectedCategory);
   }, [selectedCategory]);
 
-  useEffect(() => {
-    Swal.fire({
-      title: "Seja Bem-vindo(a)! 👋",
-      text: "Explore nossos produtos digitais incríveis!",
-      icon: "info",
-      showConfirmButton: false,
-      timer: 3000,
-      toast: true,
-      position: "top-end",
-      timerProgressBar: true,
-    });
-  }, []);
 
   return (
     <UserProvider>

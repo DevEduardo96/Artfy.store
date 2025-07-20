@@ -8,7 +8,7 @@ const AboutUs: React.FC = () => {
         {/* Título */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-800 mb-4">
-            Sobre a <span className="text-blue-600">Nectix</span>
+            Sobre a <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">Nectix</span>
           </h1>
           <p className="text-gray-600 text-lg">
             Somos uma agência criativa especializada em desenvolvimento de
