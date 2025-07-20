@@ -27,13 +27,13 @@ import { products } from "./data/products";
 import FavoritesPage from "./components/FavoritesPage";
 import SitesPage from "./pages/SitesPage";
 import ResetPassword from "./components/ResetPassword";
-import ProdutosPage from "./pages/ProductsPage";
 import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import AboutUs from "./pages/AboutUs";
 import PaymentStatusPage from "./pages/PaymentStatusPage";
 
 import "sweetalert2/dist/sweetalert2.min.css";
+import ProductsPageContent from "./pages/ProductsPageContent";
 
 function App() {
   const [selectedCategory, setSelectedCategory] = useState("Todos");
@@ -90,7 +90,7 @@ function App() {
                 <Route path="/terms" element={<TermsOfService />} />
                 <Route path="/sobre" element={<AboutUs />} />
                 <Route path="/privacy" element={<PrivacyPolicy />} />
-                <Route path="/produtos" element={<ProdutosPage />} />
+                <Route path="/produtos" element={<ProductsPageContent />} />
                 <Route path="/suporte" element={<SupportPage />} />
                 <Route
                   path="/ebooks"

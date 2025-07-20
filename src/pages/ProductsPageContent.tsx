@@ -1,6 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { Star, Download, Heart, ShoppingCart } from "lucide-react";
+import {
+  Star,
+  Download,
+  Heart,
+  ShoppingCart,
+} from "lucide-react";
 import { supabase } from "../supabaseClient";
+import { useFavorites } from "../context/FavoritesContext";
+
 
 interface Product {
   id: string;
@@ -22,6 +29,8 @@ const ProductsPageContent: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("todos");
   const [products, setProducts] = useState<Product[]>([]);
+
+  const { toggleFavorite, isFavorite } = useFavorites();
 
   const categories = [
     { id: "todos", name: "Todos" },
@@ -102,7 +111,7 @@ const ProductsPageContent: React.FC = () => {
         {filteredProducts.map((product) => (
           <div
             key={product.id}
-            className="bg-white shadow-md rounded-xl overflow-hidden"
+            className="bg-white shadow-md rounded-xl overflow-hidden relative"
           >
             <div className="relative">
               <img
@@ -115,27 +124,37 @@ const ProductsPageContent: React.FC = () => {
                   {product.badge}
                 </span>
               )}
-              <button className="absolute top-2 right-2 text-white">
-                <Heart className="w-5 h-5" />
-              </button>
+
+<button
+  onClick={() => toggleFavorite(product.id)}
+  className={`absolute top-2 right-2 ${
+    isFavorite(product.id) ? "text-red-500" : "text-white"
+  }`}
+>
+  <Heart className="w-5 h-5" fill={isFavorite(product.id) ? "currentColor" : "none"} />
+</button>
             </div>
+
             <div className="p-4">
               <span className="text-xs text-blue-600 font-bold uppercase">
                 {product.category}
               </span>
               <h3 className="text-lg font-semibold mt-1">{product.name}</h3>
               <p className="text-sm text-gray-500">{product.description}</p>
+
               <div className="flex items-center text-yellow-500 text-sm mt-2">
                 <Star className="w-4 h-4" />
                 <span className="ml-1">{product.rating}</span>
                 <span className="ml-2 text-gray-400">({product.reviews})</span>
               </div>
+
               <div className="flex items-center text-sm mt-2 text-gray-500">
                 <Download className="w-4 h-4 mr-1" />
                 <span>
                   {product.fileSize} • {product.format}
                 </span>
               </div>
+
               <div className="mt-4">
                 <div className="text-lg font-bold text-gray-800">
                   R$ {product.price.toFixed(2).replace(".", ",")}
@@ -146,6 +165,7 @@ const ProductsPageContent: React.FC = () => {
                   </div>
                 )}
               </div>
+
               <button className="mt-3 bg-purple-600 text-white w-full py-2 rounded-md flex items-center justify-center gap-2">
                 <ShoppingCart className="w-4 h-4" />
                 Comprar
