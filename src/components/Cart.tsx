@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { X, Plus, Minus, Trash2, ShoppingBag, Copy } from "lucide-react";
 import { useCart } from "../context/CartContext";
-import { useUser } from "../context/UserContext";
+import { useAuth } from "../hook/useUser"; // Corrigido para useAuth
+import { supabase } from "../supabaseClient";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Swal from "sweetalert2";
 
 const Cart: React.FC = () => {
   const { state, dispatch } = useCart();
-  const user = useUser();
+  const { user, isAuthenticated } = useAuth(); // Usando useAuth corretamente
 
   const [email, setEmail] = useState("");
   const [qrCode, setQrCode] = useState<string | null>(null);
@@ -21,7 +22,7 @@ const Cart: React.FC = () => {
     if (user?.email) {
       setEmail(user.email);
     } else {
-      setEmail(""); // Limpa email se não logado
+      setEmail("");
     }
   }, [user]);
 
@@ -50,6 +51,70 @@ const Cart: React.FC = () => {
     return /\S+@\S+\.\S+/.test(email);
   };
 
+  const createOrGetCustomer = async (email: string, name: string) => {
+    // Primeiro, tenta buscar cliente existente
+    const { data: existingCustomer } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('email', email)
+      .single();
+
+    if (existingCustomer) {
+      return existingCustomer;
+    }
+
+    // Se não existe, cria novo cliente
+    const { data: newCustomer, error } = await supabase
+      .from('customers')
+      .insert({
+        email,
+        name: name || 'Cliente'
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return newCustomer;
+  };
+
+  const createOrder = async (customerId: string, items: any[], total: number) => {
+    // Cria o pedido
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .insert({
+        customer_id: customerId,
+        total_amount: total,
+        status: 'pending'
+      })
+      .select()
+      .single();
+
+    if (orderError) {
+      throw orderError;
+    }
+
+    // Cria os itens do pedido
+    const orderItems = items.map(item => ({
+      order_id: order.id,
+      product_id: item.product.id,
+      quantity: item.quantity,
+      unit_price: item.product.price
+    }));
+
+    const { error: itemsError } = await supabase
+      .from('order_items')
+      .insert(orderItems);
+
+    if (itemsError) {
+      throw itemsError;
+    }
+
+    return order;
+  };
+
   const finalizePurchase = async () => {
     if (!validateEmail(email)) {
       Swal.fire({
@@ -69,36 +134,70 @@ const Cart: React.FC = () => {
 
     setLoading(true);
     try {
-      const response = await fetch(
+      // 1. Criar ou buscar cliente
+      const customer = await createOrGetCustomer(
+        email, 
+        user?.user_metadata?.name || user?.email?.split('@')[0] || 'Cliente'
+      );
+
+      // 2. Criar pedido no Supabase
+      const order = await createOrder(customer.id, state.items, state.total);
+
+      // 3. Criar pagamento no Mercado Pago
+      const paymentResponse = await fetch(
         "https://servidor-loja-digital.onrender.com/criar-pagamento",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             carrinho: state.items,
-            nomeCliente: user?.email || email || "Cliente",
-            email,
+            nomeCliente: customer.name,
+            email: customer.email,
             total: state.total,
+            orderId: order.id, // Passa o ID do pedido
           }),
         }
       );
 
-      if (!response.ok) {
-        throw new Error("Erro na requisição");
+      if (!paymentResponse.ok) {
+        throw new Error("Erro na requisição de pagamento");
       }
 
-      const data = await response.json();
+      const paymentData = await paymentResponse.json();
 
-      if (data.qr_code_base64) {
-        setQrCode(data.qr_code_base64);
-        setTicketUrl(data.ticket_url);
-        setPixCode(data.qr_code);
+      // 4. Atualizar pedido com ID do pagamento do Mercado Pago
+      if (paymentData.payment_id) {
+        await supabase
+          .from('orders')
+          .update({ 
+            mercadopago_payment_id: paymentData.payment_id 
+          })
+          .eq('id', order.id);
+      }
+
+      // 5. Mostrar QR Code
+      if (paymentData.qr_code_base64) {
+        setQrCode(paymentData.qr_code_base64);
+        setTicketUrl(paymentData.ticket_url);
+        setPixCode(paymentData.qr_code);
+        
+        // Limpa o carrinho após sucesso
+        dispatch({ type: "CLEAR_CART" });
+        
+        toast.success("Pedido criado com sucesso! Complete o pagamento.");
       } else {
-        toast.error("Erro ao gerar QR Code.");
+        throw new Error("QR Code não foi gerado");
       }
-    } catch (err) {
-      console.error(err);
-      toast.error("Erro ao finalizar compra.");
+
+    } catch (error) {
+      console.error('Erro ao finalizar compra:', error);
+      
+      Swal.fire({
+        icon: "error",
+        title: "Erro ao finalizar compra",
+        text: error instanceof Error ? error.message : "Erro desconhecido",
+        confirmButtonText: "OK"
+      });
     } finally {
       setLoading(false);
     }
@@ -205,9 +304,14 @@ const Cart: React.FC = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  disabled={!!user?.email} // bloqueia se usuário estiver logado
-                  required={!user?.email} // requer se não estiver logado
+                  disabled={isAuthenticated && !!user?.email}
+                  required={!isAuthenticated}
                 />
+                {isAuthenticated && (
+                  <p className="text-xs text-green-600 mt-1">
+                    ✓ Usando email da conta logada
+                  </p>
+                )}
                 <div className="mb-4 p-4 bg-yellow-100 border-l-4 border-yellow-400 text-yellow-800 text-sm rounded shadow-sm">
                   <strong className="block font-semibold mb-1">Atenção:</strong>
                   Ao clicar em{" "}
@@ -233,7 +337,7 @@ const Cart: React.FC = () => {
                 disabled={loading}
                 className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-3 rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-300 disabled:opacity-50"
               >
-                {loading ? "Gerando Pix..." : "Finalizar Compra"}
+                {loading ? "Processando..." : "Finalizar Compra"}
               </button>
             </div>
           )}
@@ -276,6 +380,10 @@ const Cart: React.FC = () => {
                 <Copy className="mr-2 h-4 w-4" /> Copiar código Pix
               </button>
             )}
+            
+            <div className="mt-4 p-3 bg-blue-50 rounded-lg text-xs text-blue-800">
+              <p>✅ Após o pagamento, você receberá um email com os links de download</p>
+            </div>
           </div>
         </div>
       )}
