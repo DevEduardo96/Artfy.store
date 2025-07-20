@@ -1,166 +1,68 @@
 // src/context/FavoritesContext.tsx
-
-import React, {
-  createContext,
-  useContext,
-  useReducer,
-  useEffect,
-  ReactNode,
-  useCallback,
-  useState,
-} from "react";
+import React, { createContext, useContext, useReducer, ReactNode } from "react";
 import { Product } from "../types";
-import { supabase } from "../supabaseClient";
-import { useUser } from "./UserContext";
+
+type Action =
+  | { type: "TOGGLE_FAVORITE"; payload: Product }
+  | { type: "CLEAR_FAVORITES" };
 
 interface FavoritesState {
-  items: Product[];
-  loading: boolean;
+  favorites: Product[];
 }
 
-type FavoritesAction =
-  | { type: "ADD_FAVORITE"; payload: Product }
-  | { type: "REMOVE_FAVORITE"; payload: string }
-  | { type: "CLEAR_FAVORITES" }
-  | { type: "LOAD_FAVORITES"; payload: Product[] }
-  | { type: "SET_LOADING"; payload: boolean };
-
-const FavoritesContext = createContext<{
-  state: FavoritesState;
-  dispatch: React.Dispatch<FavoritesAction>;
-  isFavorite: (productId: string) => boolean;
+interface FavoritesContextType {
+  favorites: Product[];
   toggleFavorite: (product: Product) => void;
-} | null>(null);
+  isFavorite: (id: string) => boolean;
+  dispatch: React.Dispatch<Action>;
+}
 
-const favoritesReducer = (
-  state: FavoritesState,
-  action: FavoritesAction
-): FavoritesState => {
+const FavoritesContext = createContext<FavoritesContextType | undefined>(undefined);
+
+const favoritesReducer = (state: FavoritesState, action: Action): FavoritesState => {
   switch (action.type) {
-    case "ADD_FAVORITE":
-      if (state.items.some((item) => item.id === action.payload.id))
-        return state;
-      return { ...state, items: [...state.items, action.payload] };
-    case "REMOVE_FAVORITE":
-      return {
-        ...state,
-        items: state.items.filter((item) => item.id !== action.payload),
-      };
+    case "TOGGLE_FAVORITE":
+      const exists = state.favorites.find((item) => item.id === action.payload.id);
+      if (exists) {
+        return {
+          ...state,
+          favorites: state.favorites.filter((item) => item.id !== action.payload.id),
+        };
+      } else {
+        return {
+          ...state,
+          favorites: [...state.favorites, action.payload],
+        };
+      }
+
     case "CLEAR_FAVORITES":
-      return { ...state, items: [] };
-    case "LOAD_FAVORITES":
-      return { ...state, items: action.payload };
-    case "SET_LOADING":
-      return { ...state, loading: action.payload };
+      return { favorites: [] };
+
     default:
       return state;
   }
 };
 
-export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({
-  children,
-}) => {
-  const [state, dispatch] = useReducer(favoritesReducer, {
-    items: [],
-    loading: false,
-  });
+export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [state, dispatch] = useReducer(favoritesReducer, { favorites: [] });
 
-  const user = useUser();
-  const [isInitialized, setIsInitialized] = useState(true);
-  const [hasLoaded, setHasLoaded] = useState(false);
+  const toggleFavorite = (product: Product) => {
+    dispatch({ type: "TOGGLE_FAVORITE", payload: product });
+  };
 
-  const loadFavorites = useCallback(async () => {
-    if (!user) return;
-
-    dispatch({ type: "SET_LOADING", payload: true });
-
-    try {
-      const { data: favData, error: favError } = await supabase
-        .from("favorites")
-        .select("product_id, products(*)")
-        .eq("user_id", user.id);
-
-      if (favError) {
-        console.error("Erro ao carregar favoritos:", favError);
-        return;
-      }
-
-      const favoriteProducts =
-        favData?.map((fav) => ({
-          id: fav.products?.id,
-          title: fav.products?.title,
-          image: fav.products?.image,
-          price: fav.products?.price,
-          category: fav.products?.category,
-        })) ?? [];
-
-      dispatch({ type: "LOAD_FAVORITES", payload: favoriteProducts });
-    } catch (error) {
-      console.error("Erro ao carregar favoritos:", error);
-    } finally {
-      dispatch({ type: "SET_LOADING", payload: false });
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (user && isInitialized && !hasLoaded) {
-      loadFavorites();
-      setHasLoaded(true);
-    }
-  }, [user, isInitialized, hasLoaded, loadFavorites]);
-
-  const isFavorite = useCallback(
-    (productId: string) => state.items.some((item) => item.id === productId),
-    [state.items]
-  );
-
-  const toggleFavorite = useCallback(
-    async (product: Product) => {
-      if (!user) {
-        alert("Você precisa estar logado para adicionar favoritos.");
-        return;
-      }
-
-      try {
-        if (isFavorite(product.id)) {
-          const { error } = await supabase
-            .from("favorites")
-            .delete()
-            .eq("user_id", user.id)
-            .eq("product_id", product.id);
-
-          if (error) throw error;
-
-          dispatch({ type: "REMOVE_FAVORITE", payload: product.id });
-        } else {
-          const { error } = await supabase.from("favorites").insert([
-            {
-              user_id: user.id,
-              product_id: product.id,
-            },
-          ]);
-
-          if (error && error.code !== "23505") throw error;
-
-          dispatch({ type: "ADD_FAVORITE", payload: product });
-        }
-      } catch (error) {
-        console.error("Erro ao alternar favorito:", error);
-        alert("Erro ao alterar favoritos. Tente novamente.");
-      }
-    },
-    [user, isFavorite]
-  );
-
-  const contextValue = {
-    state,
-    dispatch,
-    isFavorite,
-    toggleFavorite,
+  const isFavorite = (id: string) => {
+    return state.favorites.some((product) => product.id === id);
   };
 
   return (
-    <FavoritesContext.Provider value={contextValue}>
+    <FavoritesContext.Provider
+      value={{
+        favorites: state.favorites,
+        toggleFavorite,
+        isFavorite,
+        dispatch,
+      }}
+    >
       {children}
     </FavoritesContext.Provider>
   );
@@ -169,7 +71,7 @@ export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({
 export const useFavorites = () => {
   const context = useContext(FavoritesContext);
   if (!context) {
-    throw new Error("useFavorites must be used within a FavoritesProvider");
+    throw new Error("useFavorites deve ser usado dentro de um FavoritesProvider");
   }
   return context;
 };

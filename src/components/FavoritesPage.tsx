@@ -19,40 +19,36 @@ import { useFavorites } from "../context/FavoritesContext";
 import { useCart } from "../context/CartContext";
 
 const FavoritesPage: React.FC = () => {
-  const {
-    state: favoritesState,
-    dispatch: favoritesDispatch,
-    toggleFavorite,
-  } = useFavorites();
+  // Ajustado para expor favorites como array
+  const { favorites, dispatch: favoritesDispatch, toggleFavorite } = useFavorites();
   const { dispatch: cartDispatch } = useCart();
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("Todos");
+  const [selectedCategory, setSelectedCategory] = useState("todos"); // sempre minúsculo
   const [sortBy, setSortBy] = useState("recent");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showFilters, setShowFilters] = useState(false);
 
-  // Categorias únicas, mais "Todos"
+  // Categorias únicas em minúsculo + "todos"
   const categories = useMemo(() => {
     const uniqueCategories = Array.from(
-      new Set(favoritesState.items.map((item) => item.category))
+      new Set(favorites.map((item) => item.category.toLowerCase()))
     );
-    return ["Todos", ...uniqueCategories];
-  }, [favoritesState.items]);
+    return ["todos", ...uniqueCategories];
+  }, [favorites]);
 
   // Filtra e ordena favoritos sem mutação
   const filteredFavorites = useMemo(() => {
-    let filtered = favoritesState.items.filter((item) => {
+    let filtered = favorites.filter((item) => {
       const term = searchTerm.toLowerCase();
       const matchesSearch =
         item.name.toLowerCase().includes(term) ||
-        item.description.toLowerCase().includes(term);
+        (item.description?.toLowerCase() ?? "").includes(term);
       const matchesCategory =
-        selectedCategory === "Todos" || item.category === selectedCategory;
+        selectedCategory === "todos" || item.category.toLowerCase() === selectedCategory;
       return matchesSearch && matchesCategory;
     });
 
-    // Copia array para não alterar original
     filtered = [...filtered];
 
     switch (sortBy) {
@@ -73,7 +69,7 @@ const FavoritesPage: React.FC = () => {
     }
 
     return filtered;
-  }, [favoritesState.items, searchTerm, selectedCategory, sortBy]);
+  }, [favorites, searchTerm, selectedCategory, sortBy]);
 
   const addToCart = (product: Product) => {
     cartDispatch({ type: "ADD_ITEM", payload: product });
@@ -96,7 +92,6 @@ const FavoritesPage: React.FC = () => {
       try {
         await navigator.share(shareData);
       } catch (error) {
-        // Usuário pode cancelar o share
         console.log("Compartilhamento cancelado ou falhou:", error);
       }
     } else {
@@ -184,7 +179,7 @@ const FavoritesPage: React.FC = () => {
                     <Eye className="h-5 w-5" />
                   </button>
                   <button
-                    onClick={() => toggleFavorite(product)}
+                    onClick={() => toggleFavorite(product.id)}
                     aria-label={`Remover ${product.name} dos favoritos`}
                     className="p-2 text-red-500 hover:text-red-600 transition-colors"
                     type="button"
@@ -216,7 +211,7 @@ const FavoritesPage: React.FC = () => {
           />
           <div className="absolute top-3 right-3 flex space-x-2">
             <button
-              onClick={() => toggleFavorite(product)}
+              onClick={() => toggleFavorite(product.id)}
               aria-label={`Remover ${product.name} dos favoritos`}
               className="p-2 bg-white rounded-full shadow-md text-red-500 hover:bg-red-50 transition-colors"
               type="button"
@@ -235,9 +230,7 @@ const FavoritesPage: React.FC = () => {
           {product.originalPrice && (
             <div className="absolute top-3 left-3 bg-red-500 text-white px-2 py-1 rounded-md text-sm font-medium">
               {Math.round(
-                ((product.originalPrice - product.price) /
-                  product.originalPrice) *
-                  100
+                ((product.originalPrice - product.price) / product.originalPrice) * 100
               )}
               % OFF
             </div>
@@ -315,9 +308,7 @@ const FavoritesPage: React.FC = () => {
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
             <div className="text-center">
-              <p className="text-3xl font-bold mb-1">
-                {favoritesState.items.length}
-              </p>
+              <p className="text-3xl font-bold mb-1">{favorites.length}</p>
               <p className="text-sm opacity-80">Favoritos</p>
             </div>
             <div className="text-center">
@@ -326,16 +317,11 @@ const FavoritesPage: React.FC = () => {
             </div>
             <div className="text-center">
               <p className="text-3xl font-bold mb-1">
-                {favoritesState.items.reduce(
-                  (total, item) =>
-                    total +
-                    (item.originalPrice
-                      ? Math.round(
-                          ((item.originalPrice - item.price) /
-                            item.originalPrice) *
-                            100
-                        )
-                      : 0),
+                {favorites.reduce((total, item) =>
+                  total +
+                  (item.originalPrice
+                    ? Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)
+                    : 0),
                   0
                 )}
                 %
@@ -345,10 +331,7 @@ const FavoritesPage: React.FC = () => {
             <div className="text-center">
               <p className="text-3xl font-bold mb-1">
                 {formatPrice(
-                  favoritesState.items.reduce(
-                    (total, item) => total + item.price,
-                    0
-                  )
+                  favorites.reduce((total, item) => total + item.price, 0)
                 )}
               </p>
               <p className="text-sm opacity-80">Valor Total</p>
@@ -414,7 +397,7 @@ const FavoritesPage: React.FC = () => {
                 </button>
               </div>
 
-              {favoritesState.items.length > 0 && (
+              {favorites.length > 0 && (
                 <button
                   onClick={clearAllFavorites}
                   className="flex items-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
@@ -450,7 +433,7 @@ const FavoritesPage: React.FC = () => {
                   >
                     {categories.map((category) => (
                       <option key={category} value={category}>
-                        {category}
+                        {category.charAt(0).toUpperCase() + category.slice(1)}
                       </option>
                     ))}
                   </select>
@@ -487,132 +470,36 @@ const FavoritesPage: React.FC = () => {
           <div>
             <h2 className="text-2xl font-bold text-gray-800">
               {filteredFavorites.length}{" "}
-              {filteredFavorites.length === 1 ? "Favorito" : "Favoritos"}
+              {filteredFavorites.length === 1 ? "resultado" : "resultados"}
             </h2>
-            {searchTerm && (
-              <p className="text-gray-600" aria-live="polite">
-                Resultados para "{searchTerm}"
-              </p>
-            )}
+            <p className="text-gray-600 text-sm">
+              Pesquisa por:{" "}
+              <span className="font-medium">{searchTerm || "Todos os itens"}</span>
+            </p>
           </div>
         </header>
 
-        {/* Favorites Grid/List */}
-        {filteredFavorites.length > 0 ? (
-          <section
-            aria-live="polite"
-            className={
-              viewMode === "grid"
-                ? "grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-                : "space-y-6"
-            }
-          >
+        {/* Produtos */}
+        {filteredFavorites.length === 0 ? (
+          <p className="text-center text-gray-500">
+            Nenhum favorito encontrado para sua busca.
+          </p>
+        ) : viewMode === "list" ? (
+          <ul className="flex flex-col gap-6">
             {filteredFavorites.map((product) => (
-              <FavoriteCard
-                key={product.id}
-                product={product}
-                viewMode={viewMode}
-              />
+              <li key={product.id}>
+                <FavoriteCard product={product} viewMode="list" />
+              </li>
             ))}
-          </section>
-        ) : favoritesState.items.length === 0 ? (
-          <section className="text-center py-16" aria-live="polite">
-            <Heart className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">
-              Nenhum favorito ainda
-            </h3>
-            <p className="text-gray-600 mb-6">
-              Comece a adicionar produtos aos seus favoritos para vê-los aqui.
-            </p>
-            <button
-              onClick={() => window.history.back()}
-              className="bg-gradient-to-r from-red-500 to-pink-600 text-white px-6 py-3 rounded-lg hover:from-red-600 hover:to-pink-700 transition-all duration-300"
-              type="button"
-            >
-              Explorar Produtos
-            </button>
-          </section>
+          </ul>
         ) : (
-          <section className="text-center py-16" aria-live="polite">
-            <Search className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">
-              Nenhum favorito encontrado
-            </h3>
-            <p className="text-gray-600">
-              Tente ajustar os filtros ou buscar por outros termos.
-            </p>
-          </section>
-        )}
-
-        {/* Quick Actions */}
-        {filteredFavorites.length > 0 && (
-          <section className="mt-16" aria-label="Ações rápidas">
-            <div className="bg-gradient-to-r from-red-50 to-pink-50 rounded-xl p-8">
-              <div className="text-center mb-6">
-                <Sparkles className="h-12 w-12 text-red-600 mx-auto mb-4" />
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                  Ações Rápidas
-                </h2>
-                <p className="text-gray-600">
-                  Gerencie seus favoritos de forma eficiente
-                </p>
-              </div>
-
-              <div className="grid md:grid-cols-3 gap-6">
-                <button
-                  onClick={() => {
-                    filteredFavorites.forEach((product) => addToCart(product));
-                  }}
-                  className="flex flex-col items-center p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
-                  type="button"
-                >
-                  <ShoppingCart className="h-8 w-8 text-blue-600 mb-3" />
-                  <h3 className="font-semibold text-gray-800 mb-1">
-                    Adicionar Todos ao Carrinho
-                  </h3>
-                  <p className="text-sm text-gray-600 text-center">
-                    Compre todos os favoritos de uma vez
-                  </p>
-                </button>
-
-                <button
-                  className="flex flex-col items-center p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
-                  type="button"
-                  onClick={() =>
-                    alert(
-                      "Funcionalidade de compartilhar lista não implementada ainda"
-                    )
-                  }
-                >
-                  <Share2 className="h-8 w-8 text-green-600 mb-3" />
-                  <h3 className="font-semibold text-gray-800 mb-1">
-                    Compartilhar Lista
-                  </h3>
-                  <p className="text-sm text-gray-600 text-center">
-                    Envie sua lista para amigos
-                  </p>
-                </button>
-
-                <button
-                  className="flex flex-col items-center p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
-                  type="button"
-                  onClick={() =>
-                    alert(
-                      "Funcionalidade de criar coleção não implementada ainda"
-                    )
-                  }
-                >
-                  <BookOpen className="h-8 w-8 text-purple-600 mb-3" />
-                  <h3 className="font-semibold text-gray-800 mb-1">
-                    Criar Coleção
-                  </h3>
-                  <p className="text-sm text-gray-600 text-center">
-                    Organize em coleções temáticas
-                  </p>
-                </button>
-              </div>
-            </div>
-          </section>
+          <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {filteredFavorites.map((product) => (
+              <li key={product.id}>
+                <FavoriteCard product={product} viewMode="grid" />
+              </li>
+            ))}
+          </ul>
         )}
       </section>
     </main>

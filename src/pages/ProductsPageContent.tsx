@@ -1,13 +1,8 @@
 import React, { useEffect, useState } from "react";
-import {
-  Star,
-  Download,
-  Heart,
-  ShoppingCart,
-} from "lucide-react";
+import { Star, Download, Heart, ShoppingCart } from "lucide-react";
 import { supabase } from "../supabaseClient";
 import { useFavorites } from "../context/FavoritesContext";
-
+import { useCart } from "../context/CartContext";
 
 interface Product {
   id: string;
@@ -31,6 +26,7 @@ const ProductsPageContent: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
 
   const { toggleFavorite, isFavorite } = useFavorites();
+  const { dispatch } = useCart();
 
   const categories = [
     { id: "todos", name: "Todos" },
@@ -41,10 +37,7 @@ const ProductsPageContent: React.FC = () => {
 
   useEffect(() => {
     const fetchProducts = async () => {
-      const { data, error } = await supabase
-        .from("produtos")
-        .select("*")
-        .order("nome");
+      const { data, error } = await supabase.from("produtos").select("*").order("nome");
 
       if (error) {
         console.error("Erro ao buscar produtos:", error.message);
@@ -75,13 +68,25 @@ const ProductsPageContent: React.FC = () => {
   }, []);
 
   const filteredProducts = products.filter((product) => {
-    const matchesCategory =
-      selectedCategory === "todos" || product.category === selectedCategory;
-    const matchesSearch = product.name
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === "todos" || product.category === selectedCategory;
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesCategory && matchesSearch;
   });
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(price);
+  };
+
+  const handleAddToCart = (product: Product) => {
+    dispatch({ type: "ADD_ITEM", payload: product });
+    dispatch({ type: "OPEN_CART" });
+  };
+
+  const handleToggleFavorite = (e: React.MouseEvent, product: Product) => {
+    e.stopPropagation();
+    e.preventDefault();
+    toggleFavorite(product);
+  };
 
   return (
     <div className="p-4">
@@ -111,65 +116,75 @@ const ProductsPageContent: React.FC = () => {
         {filteredProducts.map((product) => (
           <div
             key={product.id}
-            className="bg-white shadow-md rounded-xl overflow-hidden relative"
+            className="bg-white rounded-xl shadow-md hover:shadow-xl overflow-hidden relative cursor-pointer group"
           >
             <div className="relative">
               <img
                 src={product.image}
                 alt={product.name}
-                className="w-full h-48 object-cover"
+                className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
               />
               {product.badge && (
-                <span className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded">
+                <span className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded font-medium">
                   {product.badge}
                 </span>
               )}
 
-<button
-  onClick={() => toggleFavorite(product.id)}
-  className={`absolute top-2 right-2 ${
-    isFavorite(product.id) ? "text-red-500" : "text-white"
-  }`}
->
-  <Heart className="w-5 h-5" fill={isFavorite(product.id) ? "currentColor" : "none"} />
-</button>
+              <button
+                onClick={(e) => handleToggleFavorite(e, product)}
+                aria-label={
+                  isFavorite(product.id)
+                    ? `Remover ${product.name} dos favoritos`
+                    : `Adicionar ${product.name} aos favoritos`
+                }
+                className={`absolute top-2 right-2 p-2 rounded-full shadow-md bg-white text-gray-600 hover:text-red-500 hover:bg-red-50 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500`}
+                type="button"
+              >
+                <Heart
+                  className={`w-5 h-5 ${
+                    isFavorite(product.id) ? "fill-red-500 text-red-500" : "stroke-current"
+                  }`}
+                />
+              </button>
             </div>
 
             <div className="p-4">
-              <span className="text-xs text-blue-600 font-bold uppercase">
-                {product.category}
-              </span>
-              <h3 className="text-lg font-semibold mt-1">{product.name}</h3>
-              <p className="text-sm text-gray-500">{product.description}</p>
+              <span className="text-xs text-blue-600 font-bold uppercase">{product.category}</span>
+              <h3 className="text-lg font-semibold mt-1 mb-2 line-clamp-2">{product.name}</h3>
+              <p className="text-sm text-gray-500 mb-3 line-clamp-2">{product.description}</p>
 
-              <div className="flex items-center text-yellow-500 text-sm mt-2">
+              <div className="flex items-center text-yellow-400 text-sm mb-2">
                 <Star className="w-4 h-4" />
                 <span className="ml-1">{product.rating}</span>
                 <span className="ml-2 text-gray-400">({product.reviews})</span>
               </div>
 
-              <div className="flex items-center text-sm mt-2 text-gray-500">
+              <div className="flex items-center text-sm mb-4 text-gray-500">
                 <Download className="w-4 h-4 mr-1" />
                 <span>
                   {product.fileSize} • {product.format}
                 </span>
               </div>
 
-              <div className="mt-4">
-                <div className="text-lg font-bold text-gray-800">
-                  R$ {product.price.toFixed(2).replace(".", ",")}
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col">
+                  <span className="text-2xl font-bold text-gray-800">{formatPrice(product.price)}</span>
+                  {product.originalPrice && (
+                    <span className="text-sm text-gray-500 line-through">
+                      {formatPrice(product.originalPrice)}
+                    </span>
+                  )}
                 </div>
-                {product.originalPrice && (
-                  <div className="text-sm text-gray-400 line-through">
-                    R$ {product.originalPrice.toFixed(2).replace(".", ",")}
-                  </div>
-                )}
-              </div>
 
-              <button className="mt-3 bg-purple-600 text-white w-full py-2 rounded-md flex items-center justify-center gap-2">
-                <ShoppingCart className="w-4 h-4" />
-                Comprar
-              </button>
+                <button
+                  onClick={() => handleAddToCart(product)}
+                  className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105"
+                  type="button"
+                >
+                  <ShoppingCart className="w-4 h-4" />
+                  <span>Comprar</span>
+                </button>
+              </div>
             </div>
           </div>
         ))}
