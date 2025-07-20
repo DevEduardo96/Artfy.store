@@ -55,7 +55,7 @@ const Cart: React.FC = () => {
       Swal.fire({
         icon: "warning",
         title: "🚫 E-mail inválido!",
-        text: "Por favor, insira um e-mail válido para receber o link de download.",
+        text: "Por favor, insira um e-mail válido ou faça login para receber o link de download.",
         toast: true,
         position: "top",
         showConfirmButton: false,
