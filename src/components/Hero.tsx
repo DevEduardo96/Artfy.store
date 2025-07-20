@@ -12,10 +12,7 @@ const Hero: React.FC = () => {
           <div className="space-y-6 text-center lg:text-left">
             <div className="inline-flex items-center space-x-2 bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-sm font-medium mx-auto lg:mx-0">
               <Star className="h-4 w-4 fill-current" />
-              <span>
-                Agência criativa focada em sites personalizados e produtos
-                digitais premium.
-              </span>
+              <span>Agência de sites e produtos digitais premium.</span>
             </div>
 
             <h1 className="text-3xl sm:text-4xl lg:text-6xl font-bold text-gray-800 leading-tight">

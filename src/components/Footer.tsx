@@ -53,7 +53,7 @@ const Footer: React.FC = () => {
             <ul className="space-y-2 text-gray-400">
               <li>
                 <Link
-                  to={"sobre"}
+                  to={"/sobre"}
                   className="hover:text-white transition-colors"
                 >
                   Sobre Nós
