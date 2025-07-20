@@ -1,94 +1,119 @@
-import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+// src/pages/PaymentStatusPage.tsx
+import React, { useEffect, useState, useCallback } from "react";
+import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { Loader2, Download, AlertTriangle } from "lucide-react";
 
-interface DownloadResponse {
-  link: string;
+interface PaymentInitData {
+  id: string;
+  status: string;
   qr_code_base64?: string;
   qr_code?: string;
-  status: string;
-  id: string;
+  ticket_url?: string;
 }
+
+interface StatusResponse {
+  status: string;
+}
+
+interface LinkResponse {
+  link: string;
+}
+
+const API_BASE = "https://servidor-loja-digital.onrender.com";
 
 const PaymentStatusPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [status, setStatus] = useState<string>("aguardando");
-  const [downloadLink, setDownloadLink] = useState<string | null>(null);
-  const [qrCodeBase64, setQrCodeBase64] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [checking, setChecking] = useState<boolean>(true);
+  const location = useLocation();
+  const navigate = useNavigate();
 
+  // Dados iniciais vindos do navigate() após criar pagamento
+  const initData = (location.state as PaymentInitData | undefined) || undefined;
+
+  const [status, setStatus] = useState<string>(initData?.status ?? "pending");
+  const [downloadLink, setDownloadLink] = useState<string | null>(null);
+  const [qrCodeBase64, setQrCodeBase64] = useState<string | null>(
+    initData?.qr_code_base64 || null
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [checking, setChecking] = useState<boolean>(false);
+
+  // Se não veio state e também não há id → erro
   useEffect(() => {
     if (!id) {
       setError("ID de pagamento inválido.");
+    }
+  }, [id]);
+
+  /** Consulta status no backend */
+  const fetchStatus = useCallback(async () => {
+    if (!id) return;
+    setChecking(true);
+    try {
+      const res = await fetch(`${API_BASE}/status-pagamento/${id}`);
+      if (!res.ok) {
+        throw new Error(`Status HTTP ${res.status}`);
+      }
+      const data: StatusResponse = await res.json();
+      setStatus(data.status);
+
+      // Se aprovado → busca link
+      if (data.status === "approved") {
+        await fetchLinkDownload(id);
+      }
+    } catch (err) {
+      console.error("❌ Erro ao consultar status:", err);
+      setError("Erro ao consultar status do pagamento.");
+    } finally {
       setChecking(false);
+    }
+  }, [id]);
+
+  /** Busca link de download quando aprovado */
+  const fetchLinkDownload = useCallback(async (paymentId: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/link-download/${paymentId}`);
+      if (!res.ok) {
+        throw new Error(`Status HTTP ${res.status}`);
+      }
+      const data: LinkResponse = await res.json();
+      setDownloadLink(data.link);
+      setQrCodeBase64(null); // não precisa mais mostrar QR
+    } catch (err) {
+      console.error("❌ Erro ao buscar link de download:", err);
+      setError("Pagamento aprovado, mas falha ao obter link de download.");
+    }
+  }, []);
+
+  // Polling: consulta status em intervalo
+  useEffect(() => {
+    if (!id) return;
+
+    // Se já veio aprovado do state, busca link direto e não poll
+    if (initData?.status === "approved") {
+      fetchLinkDownload(id);
       return;
     }
 
-    const checkPaymentStatus = async () => {
-      try {
-        console.log("🔍 Verificando pagamento ID:", id);
+    // Primeira verificação imediata
+    fetchStatus();
 
-        // ✅ URL corrigida para o endpoint correto
-        const res = await fetch(
-          `https://servidor-loja-digital.onrender.com/pagamento/${id}`
-        );
-
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-        }
-
-        const data: DownloadResponse = await res.json();
-
-        console.log("📋 Dados recebidos:", data);
-        console.log("QR Code Base64 existe?", !!data.qr_code_base64);
-        console.log("QR Code texto existe?", !!data.qr_code);
-
-        if (data.status) {
-          setStatus(data.status);
-          console.log("⏱ Status do pagamento:", data.status);
-
-          if (data.status === "approved") {
-            setQrCodeBase64(null); // não precisa mais do QR
-            setDownloadLink(data.link || null);
-            setChecking(false);
-          } else {
-            // ✅ Tenta ambos os campos de QR code
-            const qrCode = data.qr_code_base64 || data.qr_code;
-
-            if (qrCode) {
-              console.log("✅ QR Code encontrado!");
-              setQrCodeBase64(qrCode);
-            } else {
-              console.log("❌ QR Code não encontrado nos dados");
-            }
-
-            setDownloadLink(null);
-            setChecking(false);
-          }
-        } else {
-          setError("Não foi possível obter o status do pagamento.");
-          setChecking(false);
-        }
-      } catch (err) {
-        console.error("❌ Erro ao verificar status:", err);
-        setError(
-          `Erro ao verificar status: ${
-            err instanceof Error ? err.message : "Erro desconhecido"
-          }`
-        );
-        setChecking(false);
-      }
-    };
-
-    // Verifica imediatamente
-    checkPaymentStatus();
-
-    // Depois verifica a cada 5 segundos
-    const interval = setInterval(checkPaymentStatus, 5000);
-
+    // Poll a cada 5s
+    const interval = setInterval(fetchStatus, 5000);
     return () => clearInterval(interval);
-  }, [id]);
+  }, [id, initData?.status, fetchStatus, fetchLinkDownload]);
+
+  // Botão para copiar código Pix (quando qr_code em texto)
+  const copyPixCode = () => {
+    const text = initData?.qr_code || "";
+    if (!text) return;
+    navigator.clipboard
+      .writeText(text)
+      .then(() => alert("Código Pix copiado!"))
+      .catch(() => alert("Não foi possível copiar o código Pix."));
+  };
+
+  // Se usuário abriu a página manualmente (sem state) e status pendente, não teremos o QR
+  const missingQrBecauseNoState = !qrCodeBase64 && status !== "approved" && !initData?.qr_code;
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
@@ -97,6 +122,7 @@ const PaymentStatusPage: React.FC = () => {
           Status do Pagamento
         </h1>
 
+        {/* Loader */}
         {checking && (
           <div className="flex flex-col items-center space-y-2">
             <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
@@ -104,29 +130,28 @@ const PaymentStatusPage: React.FC = () => {
           </div>
         )}
 
-        {!checking && qrCodeBase64 && (
+        {/* Exibir QR enquanto pendente */}
+        {!checking && status !== "approved" && (qrCodeBase64 || initData?.qr_code) && (
           <div className="space-y-3">
             <p className="text-gray-700">
-              Seu pagamento está pendente. Escaneie o QR Code abaixo para pagar
-              via Pix:
+              Seu pagamento está pendente. Escaneie o QR Code abaixo ou copie o código Pix:
             </p>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <img
-                src={`data:image/png;base64,${qrCodeBase64}`}
-                alt="QR Code Pix"
-                className="mx-auto w-64 h-64"
-                onError={(e) => {
-                  console.log("❌ Erro ao carregar QR Code image");
-                  // Se a imagem não carregar, tenta mostrar como texto
-                  setError(
-                    "Erro ao carregar QR Code. Dados: " +
-                      qrCodeBase64?.slice(0, 50) +
-                      "..."
-                  );
-                }}
-                onLoad={() => console.log("✅ QR Code carregado com sucesso!")}
-              />
-            </div>
+            {qrCodeBase64 && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <img
+                  src={`data:image/png;base64,${qrCodeBase64}`}
+                  alt="QR Code Pix"
+                  className="mx-auto w-64 h-64"
+                />
+              </div>
+            )}
+            <button
+              onClick={copyPixCode}
+              className="text-xs underline text-blue-600 hover:text-blue-700"
+              type="button"
+            >
+              Copiar código Pix
+            </button>
             <p className="text-xs text-gray-500">
               Status atual:{" "}
               <span className="capitalize font-semibold">{status}</span>
@@ -134,18 +159,20 @@ const PaymentStatusPage: React.FC = () => {
           </div>
         )}
 
-        {!checking && status !== "approved" && !qrCodeBase64 && !error && (
+        {/* Quando não temos QR porque usuário recarregou a página */}
+        {!checking && missingQrBecauseNoState && (
           <div className="space-y-2">
             <p className="text-gray-700">
               Status do pagamento:{" "}
               <strong className="capitalize text-blue-600">{status}</strong>
             </p>
             <p className="text-sm text-yellow-600">
-              ⚠️ QR Code não disponível. Verifique os logs do servidor.
+              QR Code indisponível (página recarregada?). Volte para o carrinho e gere o Pix novamente.
             </p>
           </div>
         )}
 
+        {/* Link de download quando aprovado */}
         {downloadLink && (
           <div className="space-y-4 mt-4">
             <p className="text-green-600 font-semibold">
@@ -163,6 +190,7 @@ const PaymentStatusPage: React.FC = () => {
           </div>
         )}
 
+        {/* Erro */}
         {error && (
           <div className="mt-4 text-red-600 text-sm flex items-center justify-center gap-2">
             <AlertTriangle className="w-4 h-4" />
@@ -170,7 +198,7 @@ const PaymentStatusPage: React.FC = () => {
           </div>
         )}
 
-        {/* Debug info em desenvolvimento */}
+        {/* Debug */}
         {process.env.NODE_ENV === "development" && (
           <div className="mt-4 p-2 bg-gray-100 rounded text-xs text-left">
             <strong>Debug Info:</strong>
@@ -179,7 +207,9 @@ const PaymentStatusPage: React.FC = () => {
             <br />
             Status: {status}
             <br />
-            QR Code: {qrCodeBase64 ? "Presente" : "Ausente"}
+            QR (state): {initData?.qr_code_base64 ? "Sim" : "Não"}
+            <br />
+            QR (local): {qrCodeBase64 ? "Sim" : "Não"}
             <br />
             Checking: {checking ? "Sim" : "Não"}
           </div>
