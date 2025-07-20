@@ -14,7 +14,11 @@ const PaymentStatusPage: React.FC = () => {
   const [checking, setChecking] = useState<boolean>(true);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id) {
+      setError("ID de pagamento inválido.");
+      setChecking(false);
+      return;
+    }
 
     const interval = setInterval(async () => {
       try {
@@ -29,17 +33,18 @@ const PaymentStatusPage: React.FC = () => {
 
           if (data.status === "approved") {
             clearInterval(interval);
-            buscarLinkDownload();
+            buscarLinkDownload(); // link liberado após status aprovado
+            setChecking(false);
           }
         } else {
           setError("Não foi possível obter o status do pagamento.");
           clearInterval(interval);
+          setChecking(false);
         }
       } catch (err) {
         console.error("Erro ao verificar status:", err);
         setError("Erro ao verificar status do pagamento.");
         clearInterval(interval);
-      } finally {
         setChecking(false);
       }
     }, 5000); // verifica a cada 5 segundos
@@ -94,7 +99,7 @@ const PaymentStatusPage: React.FC = () => {
         {downloadLink && (
           <div className="space-y-4">
             <p className="text-green-600 font-semibold">
-              Pagamento aprovado! Seu link de download está pronto:
+              ✅ Pagamento aprovado! Seu link de download está pronto:
             </p>
             <a
               href={downloadLink}

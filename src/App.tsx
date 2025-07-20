@@ -21,7 +21,7 @@ import Footer from "./components/Footer";
 import { CartProvider } from "./context/CartContext";
 import { FavoritesProvider } from "./context/FavoritesContext";
 import { UserProvider } from "./context/UserContext";
-import { AuthProvider } from "./components/AuthProvider"; // ✅ IMPORTADO
+import { AuthProvider } from "./components/AuthProvider";
 
 import { products } from "./data/products";
 import FavoritesPage from "./components/FavoritesPage";
@@ -51,7 +51,7 @@ function App() {
   }, [selectedCategory]);
 
   return (
-    <AuthProvider> {/* ✅ ENVOLVE TUDO */}
+    <AuthProvider>
       <UserProvider>
         <CartProvider>
           <FavoritesProvider>
@@ -86,7 +86,7 @@ function App() {
                     </>
                   }
                 />
-                <Route path="/pagamento/:id" element={<PaymentStatusPage />} />
+                <Route path="/status/:id" element={<PaymentStatusPage />} /> {/* ✅ Corrigido */}
                 <Route path="/terms" element={<TermsOfService />} />
                 <Route path="/sobre" element={<AboutUs />} />
                 <Route path="/privacy" element={<PrivacyPolicy />} />
