@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { X, Plus, Minus, Trash2, ShoppingBag, Copy } from "lucide-react";
 import { useCart } from "../context/CartContext";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const Cart: React.FC = () => {
   const { state, dispatch } = useCart();
@@ -33,13 +35,12 @@ const Cart: React.FC = () => {
   };
 
   const validateEmail = (email: string) => {
-    // Regex simples para validar e-mail
     return /\S+@\S+\.\S+/.test(email);
   };
 
   const finalizePurchase = async () => {
     if (!validateEmail(email)) {
-      alert("Por favor, insira um e-mail válido.");
+      toast.warning("Por favor, insira um e-mail válido.");
       return;
     }
 
@@ -52,7 +53,7 @@ const Cart: React.FC = () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             carrinho: state.items,
-            nomeCliente: "Cliente Teste", // Você pode adicionar campo para nome também
+            nomeCliente: "Cliente Teste",
             email,
             total: state.total,
           }),
@@ -68,13 +69,13 @@ const Cart: React.FC = () => {
       if (data.qr_code_base64) {
         setQrCode(data.qr_code_base64);
         setTicketUrl(data.ticket_url);
-        setPixCode(data.qr_code); // código pix para copiar
+        setPixCode(data.qr_code);
       } else {
-        alert("Erro ao gerar QR Code");
+        toast.error("Erro ao gerar QR Code.");
       }
     } catch (err) {
       console.error(err);
-      alert("Erro ao finalizar compra");
+      toast.error("Erro ao finalizar compra.");
     } finally {
       setLoading(false);
     }
@@ -83,7 +84,7 @@ const Cart: React.FC = () => {
   const copyPixCodeToClipboard = () => {
     if (pixCode) {
       navigator.clipboard.writeText(pixCode);
-      alert("Código Pix copiado para a área de transferência!");
+      toast.success("Código Pix copiado para a área de transferência!");
     }
   };
 
@@ -98,7 +99,6 @@ const Cart: React.FC = () => {
 
       <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl">
         <div className="flex h-full flex-col">
-          {/* Header */}
           <div className="flex items-center justify-between p-4 border-b">
             <h2 className="text-lg font-semibold text-gray-800">Carrinho</h2>
             <button
@@ -109,7 +109,6 @@ const Cart: React.FC = () => {
             </button>
           </div>
 
-          {/* Cart Items */}
           <div className="flex-1 overflow-y-auto p-4">
             {state.items.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-gray-500">
@@ -168,7 +167,6 @@ const Cart: React.FC = () => {
               </div>
             )}
 
-            {/* Campo para inserir e-mail */}
             {state.items.length > 0 && (
               <div className="mt-6">
                 <label
@@ -198,7 +196,6 @@ const Cart: React.FC = () => {
             )}
           </div>
 
-          {/* Footer */}
           {state.items.length > 0 && (
             <div className="border-t p-4 space-y-4">
               <div className="flex justify-between items-center">
@@ -219,7 +216,6 @@ const Cart: React.FC = () => {
         </div>
       </div>
 
-      {/* Modal QR Code Pix */}
       {qrCode && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
           <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm text-center relative">
