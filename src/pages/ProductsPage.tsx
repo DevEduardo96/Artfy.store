@@ -1,7 +1,6 @@
-import React, { useState } from "react";
-import { Search, Filter } from "lucide-react";
-import Footer from "../components/Footer";
-import ProductCard from "../components/ProductCard";
+import React, { useEffect, useState } from "react";
+import { Star, Download, Heart, ShoppingCart } from "lucide-react";
+import { supabase } from "../supabaseClient";
 
 interface Product {
   id: string;
@@ -19,110 +18,10 @@ interface Product {
   format: string;
 }
 
-const products: Product[] = [
-  {
-    id: "1",
-    name: "Curso Completo de Marketing Digital",
-    category: "cursos",
-    price: 297,
-    originalPrice: 497,
-    rating: 4.9,
-    reviews: 1234,
-    image:
-      "https://images.unsplash.com/photo-1432888622747-4eb9a8efeb07?w=400&h=300&fit=crop",
-    badge: "Mais Vendido",
-    description:
-      "Aprenda estratégias avançadas de marketing digital do zero ao avançado",
-    popularity: 10,
-    fileSize: "2.5GB",
-    format: "MP4",
-  },
-  {
-    id: "2",
-    name: "E-book: Copywriting Persuasivo",
-    category: "ebooks",
-    price: 49,
-    originalPrice: 89,
-    rating: 4.8,
-    reviews: 856,
-    image:
-      "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&h=300&fit=crop",
-    badge: "Novo",
-    description: "Técnicas comprovadas para escrever textos que convertem",
-    popularity: 8,
-    fileSize: "15MB",
-    format: "PDF",
-  },
-  {
-    id: "3",
-    name: "Templates de Instagram para Negócios",
-    category: "templates",
-    price: 67,
-    originalPrice: null,
-    rating: 4.7,
-    reviews: 432,
-    image:
-      "https://images.unsplash.com/photo-1611262588024-d12430b98920?w=400&h=300&fit=crop",
-    badge: null,
-    description: "Pack com 100+ templates editáveis para Instagram",
-    popularity: 6,
-    fileSize: "150MB",
-    format: "PSD",
-  },
-  {
-    id: "4",
-    name: "Curso de React e TypeScript",
-    category: "cursos",
-    price: 397,
-    originalPrice: 597,
-    rating: 5.0,
-    reviews: 678,
-    image:
-      "https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=400&h=300&fit=crop",
-    badge: "Premium",
-    description:
-      "Domine o desenvolvimento frontend moderno com React e TypeScript",
-    popularity: 9,
-    fileSize: "3.2GB",
-    format: "MP4",
-  },
-  {
-    id: "5",
-    name: "E-book: Gestão Financeira Pessoal",
-    category: "ebooks",
-    price: 29,
-    originalPrice: 59,
-    rating: 4.6,
-    reviews: 945,
-    image:
-      "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400&h=300&fit=crop",
-    badge: null,
-    description: "Guia completo para organizar suas finanças pessoais",
-    popularity: 7,
-    fileSize: "8MB",
-    format: "PDF",
-  },
-  {
-    id: "6",
-    name: "Templates de Landing Pages",
-    category: "templates",
-    price: 89,
-    originalPrice: 149,
-    rating: 4.8,
-    reviews: 321,
-    image:
-      "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&h=300&fit=crop",
-    badge: "Oferta",
-    description: "10 templates profissionais de landing pages responsivas",
-    popularity: 5,
-    fileSize: "45MB",
-    format: "HTML",
-  },
-];
-
 const ProductsPageContent: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("todos");
+  const [products, setProducts] = useState<Product[]>([]);
 
   const categories = [
     { id: "todos", name: "Todos" },
@@ -130,6 +29,41 @@ const ProductsPageContent: React.FC = () => {
     { id: "ebooks", name: "E-books" },
     { id: "templates", name: "Templates" },
   ];
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      const { data, error } = await supabase
+        .from("produtos")
+        .select("*")
+        .order("nome");
+
+      if (error) {
+        console.error("Erro ao buscar produtos:", error.message);
+        return;
+      }
+
+      if (data) {
+        const mapped = data.map((item: any) => ({
+          id: item.id,
+          name: item.nome,
+          category: item.categoria,
+          price: item.preco,
+          originalPrice: item.preco_original,
+          rating: item.avaliacao,
+          reviews: item.qtd_avaliacoes,
+          image: item.imagem,
+          badge: item.desconto ? `${item.desconto}% OFF` : null,
+          description: item.descricao,
+          popularity: item.avaliacao || 0,
+          fileSize: item.tamanho,
+          format: item.formato,
+        }));
+        setProducts(mapped);
+      }
+    };
+
+    fetchProducts();
+  }, []);
 
   const filteredProducts = products.filter((product) => {
     const matchesCategory =
@@ -141,85 +75,87 @@ const ProductsPageContent: React.FC = () => {
   });
 
   return (
-    <div className="bg-gradient-to-br from-blue-50 to-purple-50 min-h-screen">
-      {/* Cabeçalho */}
-      <div className="bg-white shadow-sm">
-        <div className="container mx-auto px-4 py-6 flex flex-col lg:flex-row justify-between items-center gap-6">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800">
-              Nossos{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
-                Produtos
-              </span>
-            </h1>
-            <p className="text-gray-600">
-              Descubra conteúdos premium para acelerar seu crescimento
-            </p>
-          </div>
+    <div className="p-4">
+      <div className="mb-4 flex flex-col md:flex-row justify-between items-center">
+        <input
+          type="text"
+          placeholder="Buscar produto..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="border p-2 rounded-md w-full md:w-1/3 mb-2 md:mb-0"
+        />
 
-          <div className="w-full lg:w-auto">
+        <select
+          value={selectedCategory}
+          onChange={(e) => setSelectedCategory(e.target.value)}
+          className="border p-2 rounded-md w-full md:w-1/4"
+        >
+          {categories.map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+        {filteredProducts.map((product) => (
+          <div
+            key={product.id}
+            className="bg-white shadow-md rounded-xl overflow-hidden"
+          >
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Buscar produtos..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full sm:w-64"
+              <img
+                src={product.image}
+                alt={product.name}
+                className="w-full h-48 object-cover"
               />
+              {product.badge && (
+                <span className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded">
+                  {product.badge}
+                </span>
+              )}
+              <button className="absolute top-2 right-2 text-white">
+                <Heart className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4">
+              <span className="text-xs text-blue-600 font-bold uppercase">
+                {product.category}
+              </span>
+              <h3 className="text-lg font-semibold mt-1">{product.name}</h3>
+              <p className="text-sm text-gray-500">{product.description}</p>
+              <div className="flex items-center text-yellow-500 text-sm mt-2">
+                <Star className="w-4 h-4" />
+                <span className="ml-1">{product.rating}</span>
+                <span className="ml-2 text-gray-400">({product.reviews})</span>
+              </div>
+              <div className="flex items-center text-sm mt-2 text-gray-500">
+                <Download className="w-4 h-4 mr-1" />
+                <span>
+                  {product.fileSize} • {product.format}
+                </span>
+              </div>
+              <div className="mt-4">
+                <div className="text-lg font-bold text-gray-800">
+                  R$ {product.price.toFixed(2).replace(".", ",")}
+                </div>
+                {product.originalPrice && (
+                  <div className="text-sm text-gray-400 line-through">
+                    R$ {product.originalPrice.toFixed(2).replace(".", ",")}
+                  </div>
+                )}
+              </div>
+              <button className="mt-3 bg-purple-600 text-white w-full py-2 rounded-md flex items-center justify-center gap-2">
+                <ShoppingCart className="w-4 h-4" />
+                Comprar
+              </button>
             </div>
           </div>
-        </div>
+        ))}
       </div>
-
-      {/* Filtros e Produtos */}
-      <div className="container mx-auto px-4 py-8 grid lg:grid-cols-4 gap-8">
-        <aside className="lg:col-span-1">
-          <div className="bg-white p-6 rounded-2xl shadow-sm">
-            <div className="flex items-center space-x-2 mb-6">
-              <Filter className="h-5 w-5 text-gray-600" />
-              <h3 className="text-lg font-semibold text-gray-800">
-                Categorias
-              </h3>
-            </div>
-            <div className="space-y-2">
-              {categories.map((category) => (
-                <button
-                  key={category.id}
-                  onClick={() => setSelectedCategory(category.id)}
-                  className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-200 flex justify-between items-center ${
-                    selectedCategory === category.id
-                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
-                      : "hover:bg-gray-100 text-gray-600"
-                  }`}
-                >
-                  {category.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        </aside>
-
-        <main className="lg:col-span-3">
-          <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
-            {filteredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-
-          {filteredProducts.length === 0 && (
-            <div className="mt-12 text-center text-gray-500">
-              Nenhum produto encontrado com os filtros aplicados.
-            </div>
-          )}
-        </main>
-      </div>
-
-      <Footer />
     </div>
   );
 };
 
-const ProdutosPage: React.FC = () => <ProductsPageContent />;
-
-export default ProdutosPage;
+export default ProductsPageContent;
