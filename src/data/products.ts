@@ -6,7 +6,7 @@ export const products: Product[] = [
     name: "Curso Completo de React.js",
     description:
       "Aprenda React.js do básico ao avançado com projetos práticos e exemplos reais.",
-    price: 149.9,
+    price: 0.2,
     originalPrice: 249.9,
     image:
       "https://images.pexels.com/photos/11035471/pexels-photo-11035471.jpeg?auto=compress&cs=tinysrgb&w=500",
