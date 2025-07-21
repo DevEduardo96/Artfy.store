@@ -11,45 +11,37 @@ import {
   Trash2,
   Share2,
   Eye,
-  BookOpen,
-  Sparkles,
 } from "lucide-react";
 import { Product } from "../types";
 import { useFavorites } from "../context/FavoritesContext";
 import { useCart } from "../context/CartContext";
 
 const FavoritesPage: React.FC = () => {
-  // Ajustado para expor favorites como array
   const { favorites, dispatch: favoritesDispatch, toggleFavorite } = useFavorites();
   const { dispatch: cartDispatch } = useCart();
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("todos"); // sempre minúsculo
+  const [selectedCategory, setSelectedCategory] = useState("todos");
   const [sortBy, setSortBy] = useState("recent");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showFilters, setShowFilters] = useState(false);
 
-  // Categorias únicas em minúsculo + "todos"
+  // Extrai categorias únicas (em minúsculo)
   const categories = useMemo(() => {
-    const uniqueCategories = Array.from(
-      new Set(favorites.map((item) => item.category.toLowerCase()))
-    );
-    return ["todos", ...uniqueCategories];
+    const unique = Array.from(new Set(favorites.map((p) => p.category.toLowerCase())));
+    return ["todos", ...unique];
   }, [favorites]);
 
-  // Filtra e ordena favoritos sem mutação
+  // Filtra e ordena produtos favoritos
   const filteredFavorites = useMemo(() => {
-    let filtered = favorites.filter((item) => {
+    let filtered = favorites.filter((p) => {
       const term = searchTerm.toLowerCase();
       const matchesSearch =
-        item.name.toLowerCase().includes(term) ||
-        (item.description?.toLowerCase() ?? "").includes(term);
-      const matchesCategory =
-        selectedCategory === "todos" || item.category.toLowerCase() === selectedCategory;
+        p.name.toLowerCase().includes(term) ||
+        (p.description?.toLowerCase() ?? "").includes(term);
+      const matchesCategory = selectedCategory === "todos" || p.category.toLowerCase() === selectedCategory;
       return matchesSearch && matchesCategory;
     });
-
-    filtered = [...filtered];
 
     switch (sortBy) {
       case "name":
@@ -64,12 +56,15 @@ const FavoritesPage: React.FC = () => {
       case "rating":
         filtered.sort((a, b) => b.rating - a.rating);
         break;
-      default: // recent
-        filtered.reverse();
+      default:
+        filtered = filtered.reverse(); // recent
     }
 
     return filtered;
   }, [favorites, searchTerm, selectedCategory, sortBy]);
+
+  const formatPrice = (price: number) =>
+    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(price);
 
   const addToCart = (product: Product) => {
     cartDispatch({ type: "ADD_ITEM", payload: product });
@@ -91,29 +86,24 @@ const FavoritesPage: React.FC = () => {
     if (navigator.share) {
       try {
         await navigator.share(shareData);
-      } catch (error) {
-        console.log("Compartilhamento cancelado ou falhou:", error);
+      } catch {
+        // Silenciar erro
       }
     } else {
       try {
         await navigator.clipboard.writeText(window.location.href);
         alert("Link copiado para a área de transferência!");
       } catch {
-        alert("Não foi possível copiar o link. Por favor, copie manualmente.");
+        alert("Não foi possível copiar o link.");
       }
     }
   };
 
-  const formatPrice = (price: number) =>
-    new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(price);
-
-  const FavoriteCard: React.FC<{
-    product: Product;
-    viewMode: "grid" | "list";
-  }> = ({ product, viewMode }) => {
+  // Card para visualização grid ou list
+  const FavoriteCard: React.FC<{ product: Product; viewMode: "grid" | "list" }> = ({
+    product,
+    viewMode,
+  }) => {
     if (viewMode === "list") {
       return (
         <article className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 p-6">
@@ -126,28 +116,18 @@ const FavoritesPage: React.FC = () => {
             <div className="flex-1 flex flex-col justify-between">
               <header className="flex items-start justify-between mb-2">
                 <div>
-                  <span className="text-sm text-blue-600 font-medium">
-                    {product.category}
-                  </span>
-                  <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                    {product.name}
-                  </h3>
+                  <span className="text-sm text-blue-600 font-medium">{product.category}</span>
+                  <h3 className="text-xl font-semibold text-gray-800 mb-2">{product.name}</h3>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold text-gray-800">
-                    {formatPrice(product.price)}
-                  </p>
+                  <p className="text-2xl font-bold text-gray-800">{formatPrice(product.price)}</p>
                   {product.originalPrice && (
-                    <p className="text-sm text-gray-500 line-through">
-                      {formatPrice(product.originalPrice)}
-                    </p>
+                    <p className="text-sm text-gray-500 line-through">{formatPrice(product.originalPrice)}</p>
                   )}
                 </div>
               </header>
 
-              <p className="text-gray-600 mb-4 line-clamp-2">
-                {product.description}
-              </p>
+              <p className="text-gray-600 mb-4 line-clamp-2">{product.description}</p>
 
               <footer className="flex items-center justify-between">
                 <div className="flex items-center space-x-4 text-sm text-gray-500">
@@ -179,7 +159,7 @@ const FavoritesPage: React.FC = () => {
                     <Eye className="h-5 w-5" />
                   </button>
                   <button
-                    onClick={() => toggleFavorite(product.id)}
+                    onClick={() => toggleFavorite(product)}
                     aria-label={`Remover ${product.name} dos favoritos`}
                     className="p-2 text-red-500 hover:text-red-600 transition-colors"
                     type="button"
@@ -211,7 +191,7 @@ const FavoritesPage: React.FC = () => {
           />
           <div className="absolute top-3 right-3 flex space-x-2">
             <button
-              onClick={() => toggleFavorite(product.id)}
+              onClick={() => toggleFavorite(product)}
               aria-label={`Remover ${product.name} dos favoritos`}
               className="p-2 bg-white rounded-full shadow-md text-red-500 hover:bg-red-50 transition-colors"
               type="button"
@@ -239,22 +219,16 @@ const FavoritesPage: React.FC = () => {
 
         <div className="p-5">
           <header className="flex items-center justify-between mb-2">
-            <span className="text-sm text-blue-600 font-medium">
-              {product.category}
-            </span>
+            <span className="text-sm text-blue-600 font-medium">{product.category}</span>
             <div className="flex items-center space-x-1">
               <Star className="h-4 w-4 text-yellow-400 fill-current" />
               <span className="text-sm text-gray-600">{product.rating}</span>
             </div>
           </header>
 
-          <h3 className="text-lg font-semibold text-gray-800 mb-2 line-clamp-2">
-            {product.name}
-          </h3>
+          <h3 className="text-lg font-semibold text-gray-800 mb-2 line-clamp-2">{product.name}</h3>
 
-          <p className="text-gray-600 text-sm mb-3 line-clamp-2">
-            {product.description}
-          </p>
+          <p className="text-gray-600 text-sm mb-3 line-clamp-2">{product.description}</p>
 
           <div className="flex items-center justify-between mb-4 text-sm text-gray-500">
             <div className="flex items-center space-x-2">
@@ -267,9 +241,7 @@ const FavoritesPage: React.FC = () => {
 
           <footer className="flex items-center justify-between">
             <div className="flex flex-col">
-              <span className="text-xl font-bold text-gray-800">
-                {formatPrice(product.price)}
-              </span>
+              <span className="text-xl font-bold text-gray-800">{formatPrice(product.price)}</span>
               {product.originalPrice && (
                 <span className="text-sm text-gray-500 line-through">
                   {formatPrice(product.originalPrice)}
@@ -340,6 +312,7 @@ const FavoritesPage: React.FC = () => {
         </div>
       </section>
 
+      {/* Main Content */}
       <section className="container mx-auto px-4 py-8">
         {/* Search and Filters */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
@@ -412,10 +385,7 @@ const FavoritesPage: React.FC = () => {
 
           {/* Expanded Filters */}
           {showFilters && (
-            <div
-              id="filters-section"
-              className="mt-6 pt-6 border-t border-gray-200"
-            >
+            <div id="filters-section" className="mt-6 pt-6 border-t border-gray-200">
               <div className="grid md:grid-cols-2 gap-6">
                 {/* Category Filter */}
                 <div>
@@ -469,21 +439,17 @@ const FavoritesPage: React.FC = () => {
         <header className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-2xl font-bold text-gray-800">
-              {filteredFavorites.length}{" "}
-              {filteredFavorites.length === 1 ? "resultado" : "resultados"}
+              {filteredFavorites.length} {filteredFavorites.length === 1 ? "resultado" : "resultados"}
             </h2>
             <p className="text-gray-600 text-sm">
-              Pesquisa por:{" "}
-              <span className="font-medium">{searchTerm || "Todos os itens"}</span>
+              Pesquisa por: <span className="font-medium">{searchTerm || "Todos os itens"}</span>
             </p>
           </div>
         </header>
 
-        {/* Produtos */}
+        {/* Product List */}
         {filteredFavorites.length === 0 ? (
-          <p className="text-center text-gray-500">
-            Nenhum favorito encontrado para sua busca.
-          </p>
+          <p className="text-center text-gray-500">Nenhum favorito encontrado para sua busca.</p>
         ) : viewMode === "list" ? (
           <ul className="flex flex-col gap-6">
             {filteredFavorites.map((product) => (

@@ -148,6 +148,7 @@ export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({ children 
   const toggleFavorite = (product: Product) => {
     console.log("=== TOGGLE FAVORITE FUNCTION DEBUG ===");
     console.log("Product received in toggleFavorite:", product);
+    console.log("Current favorites before toggle:", state.favorites);
     
     try {
       if (!product) {
@@ -166,7 +167,14 @@ export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({ children 
       }
 
       console.log("Dispatching TOGGLE_FAVORITE for:", product.name);
-      dispatch({ type: "TOGGLE_FAVORITE", payload: product });
+      
+      // Force re-render by creating new state reference
+      dispatch({ type: "TOGGLE_FAVORITE", payload: { ...product } });
+      
+      // Log after a delay to see the result
+      setTimeout(() => {
+        console.log("Favorites after toggle (delayed):", state.favorites);
+      }, 100);
       
     } catch (error) {
       console.error("Error in toggleFavorite function:", error);
