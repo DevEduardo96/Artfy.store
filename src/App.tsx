@@ -1,6 +1,6 @@
 // src/App.tsx
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -23,7 +23,8 @@ import { FavoritesProvider } from "./context/FavoritesContext";
 import { UserProvider } from "./context/UserContext";
 import { AuthProvider } from "./components/AuthProvider";
 
-import { products } from "./data/products";
+import { fetchProducts } from "./data/products";
+import { Product } from "./types";
 import FavoritesPage from "./components/FavoritesPage";
 import SitesPage from "./pages/SitesPage";
 import ResetPassword from "./components/ResetPassword";
@@ -37,6 +38,24 @@ import ProductsPageContent from "./pages/ProductsPageContent";
 
 function App() {
   const [selectedCategory, setSelectedCategory] = useState("Todos");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        const fetchedProducts = await fetchProducts();
+        console.log('🏠 Produtos carregados na Home:', fetchedProducts.length);
+        setProducts(fetchedProducts);
+      } catch (error) {
+        console.error('Erro ao carregar produtos:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProducts();
+  }, []);
 
   const categories = useMemo(() => {
     const uniqueCategories = [
@@ -63,25 +82,46 @@ function App() {
                   element={
                     <>
                       <Hero />
-                      <main className="container mx-auto px-4 py-12">
-                        <CategoryFilter
-                          categories={categories}
-                          selectedCategory={selectedCategory}
-                          onCategoryChange={setSelectedCategory}
-                        />
-                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                          {filteredProducts.map((product) => (
-                            <ProductCard key={product.id} product={product} />
-                          ))}
-                        </div>
-                        {filteredProducts.length === 0 && (
-                          <div className="text-center py-12">
-                            <p className="text-gray-500 text-lg">
-                              Nenhum produto encontrado nesta categoria.
-                            </p>
+                      {loading ? (
+                        <main className="container mx-auto px-4 py-12">
+                          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {Array.from({ length: 6 }).map((_, i) => (
+                              <div key={i} className="bg-white rounded-xl shadow-md overflow-hidden animate-pulse">
+                                <div className="bg-gray-300 h-48 w-full"></div>
+                                <div className="p-5">
+                                  <div className="h-4 bg-gray-300 rounded w-1/4 mb-2"></div>
+                                  <div className="h-6 bg-gray-300 rounded w-3/4 mb-3"></div>
+                                  <div className="h-4 bg-gray-300 rounded w-full mb-3"></div>
+                                  <div className="flex justify-between items-center">
+                                    <div className="h-6 bg-gray-300 rounded w-20"></div>
+                                    <div className="h-10 w-28 bg-gray-300 rounded-lg"></div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                        )}
-                      </main>
+                        </main>
+                      ) : (
+                        <main className="container mx-auto px-4 py-12">
+                          <CategoryFilter
+                            categories={categories}
+                            selectedCategory={selectedCategory}
+                            onCategoryChange={setSelectedCategory}
+                          />
+                          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {filteredProducts.map((product) => (
+                              <ProductCard key={product.id} product={product} />
+                            ))}
+                          </div>
+                          {filteredProducts.length === 0 && (
+                            <div className="text-center py-12">
+                              <p className="text-gray-500 text-lg">
+                                Nenhum produto encontrado nesta categoria.
+                              </p>
+                            </div>
+                          )}
+                        </main>
+                      )}
                       <Footer />
                     </>
                   }

@@ -12,8 +12,8 @@ import {
   Share2,
   Eye,
 } from "lucide-react";
-import { Product } from "../types";
 import { useFavorites } from "../context/FavoritesContext";
+import { Product } from "../types";
 import { useCart } from "../context/CartContext";
 
 const FavoritesPage: React.FC = () => {

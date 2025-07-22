@@ -1,16 +1,16 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Star, Download, Heart, ShoppingCart } from "lucide-react";
-import { supabase } from "../supabaseClient";
-import { useFavorites, Product } from "../context/FavoritesContext"; // Importar Product do contexto
+import { fetchProducts, invalidateProductsCache } from "../data/products";
+import { useFavorites } from "../context/FavoritesContext";
+import { Product } from "../types";
 import { useCart } from "../context/CartContext";
-
-// Remover a definição local de Product já que agora importamos do contexto
 
 const ProductsPageContent: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("todos");
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const { toggleFavorite, isFavorite } = useFavorites();
   const { dispatch } = useCart();
@@ -23,110 +23,58 @@ const ProductsPageContent: React.FC = () => {
   ];
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const loadProducts = async () => {
       try {
-        const { data, error } = await supabase.from("produtos").select("*").order("nome");
-
-        if (error) {
-          console.error("Erro ao buscar produtos:", error.message);
-          setLoading(false);
-          return;
-        }
-
-        if (data) {
-          const mapped = data
-            .filter((item: any) => item && item.nome) // Filtra itens inválidos
-            .map((item: any) => ({
-              id: item.id || "",
-              name: String(item.nome || ""),
-              category: String(item.categoria || ""),
-              price: Number(item.preco) || 0,
-              originalPrice: item.preco_original ? Number(item.preco_original) : null,
-              rating: Number(item.avaliacao) || 0,
-              reviews: Number(item.qtd_avaliacoes) || 0,
-              image: String(item.imagem || ""),
-              badge: item.desconto ? `${item.desconto}% OFF` : null,
-              description: String(item.descricao || ""),
-              popularity: Number(item.avaliacao) || 0,
-              fileSize: String(item.tamanho || ""),
-              format: String(item.formato || ""),
-            }));
-          setProducts(mapped);
-        }
+        setError(null);
+        const fetchedProducts = await fetchProducts();
+        console.log('📊 Produtos carregados:', fetchedProducts.length);
+        setProducts(fetchedProducts);
       } catch (error) {
         console.error("Erro ao buscar produtos:", error);
+        setError("Erro ao carregar produtos. Tente novamente.");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProducts();
+    loadProducts();
   }, []);
 
-  // Filtro mais robusto para evitar erros - DEBUG VERSION
-  console.log("=== DEBUG FILTER START ===");
-  console.log("Products array:", products);
-  console.log("Products length:", products?.length);
-  console.log("Selected category:", selectedCategory);
-  console.log("Search term:", searchTerm);
-  
-  const filteredProducts = (() => {
+  const filteredProducts = useMemo(() => {
     if (!products || !Array.isArray(products)) {
-      console.error("Products is not a valid array:", products);
       return [];
     }
 
-    console.log("Filtering products...");
-    
-    const filtered = [];
-    
-    for (let i = 0; i < products.length; i++) {
-      const product = products[i];
-      console.log(`Processing product ${i}:`, product);
-      
-      // Verificações de segurança muito detalhadas
-      if (!product) {
-        console.warn(`Product ${i} is null/undefined:`, product);
-        continue;
-      }
-      
-      if (typeof product !== 'object') {
-        console.warn(`Product ${i} is not an object:`, typeof product, product);
-        continue;
-      }
-      
-      if (!product.hasOwnProperty('name') || product.name === null || product.name === undefined) {
-        console.warn(`Product ${i} has invalid name:`, product.name, product);
-        continue;
-      }
-      
-      if (typeof product.name !== 'string') {
-        console.warn(`Product ${i} name is not a string:`, typeof product.name, product.name, product);
-        continue;
-      }
-      
-      if (!product.hasOwnProperty('category') || product.category === null || product.category === undefined) {
-        console.warn(`Product ${i} has invalid category:`, product.category, product);
-        continue;
+    return products.filter((product) => {
+      if (!product || !product.name || !product.category) {
+        return false;
       }
 
-      try {
-        const matchesCategory = selectedCategory === "todos" || product.category === selectedCategory;
-        const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
-        
-        if (matchesCategory && matchesSearch) {
-          filtered.push(product);
-          console.log(`Product ${i} passed filter:`, product.name);
-        }
-      } catch (error) {
-        console.error(`Error filtering product ${i}:`, product, error);
-      }
-    }
+      const matchesCategory = selectedCategory === "todos" || 
+        product.category.toLowerCase() === selectedCategory.toLowerCase();
+      const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()));
+      
+      return matchesCategory && matchesSearch;
+    });
+  }, [products, selectedCategory, searchTerm]);
+
+  const refreshProducts = async () => {
+    setLoading(true);
+    setError(null);
+    invalidateProductsCache();
     
-    console.log("Filtered products result:", filtered);
-    console.log("=== DEBUG FILTER END ===");
-    return filtered;
-  })();
+    try {
+      const fetchedProducts = await fetchProducts();
+      console.log('🔄 Produtos atualizados:', fetchedProducts.length);
+      setProducts(fetchedProducts);
+    } catch (error) {
+      console.error("Erro ao atualizar produtos:", error);
+      setError("Erro ao atualizar produtos. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const formatPrice = (price: number) => {
     try {
@@ -156,49 +104,27 @@ const ProductsPageContent: React.FC = () => {
   const handleToggleFavorite = (e: React.MouseEvent, product: Product) => {
     e.stopPropagation();
     e.preventDefault();
-    
-    console.log("=== HANDLE TOGGLE FAVORITE DEBUG ===");
-    console.log("Product received:", product);
-    console.log("Product type:", typeof product);
-    console.log("Product keys:", product ? Object.keys(product) : "No keys - product is falsy");
-    
+
     try {
       if (!product) {
         console.error("Product is null/undefined:", product);
         return;
       }
-      
-      if (typeof product !== 'object') {
-        console.error("Product is not an object:", typeof product, product);
-        return;
-      }
-      
+
       if (!product.id) {
         console.error("Product has no ID:", product);
         return;
       }
-      
+
       if (!product.name) {
         console.error("Product has no name:", product);
         return;
       }
-      
-      console.log("ProductCard: Toggling favorite for", product.name);
-      console.log("Current products state before toggle:", products);
-      
+
       toggleFavorite(product);
-      
-      // Log após um pequeno delay para ver o que aconteceu
-      setTimeout(() => {
-        console.log("Products state after toggle (delayed):", products);
-      }, 100);
-      
     } catch (error) {
       console.error("Erro ao alterar favorito:", error);
-      console.error("Error stack:", error.stack);
     }
-    
-    console.log("=== END TOGGLE FAVORITE DEBUG ===");
   };
 
   const SkeletonCard = () => (
@@ -223,35 +149,56 @@ const ProductsPageContent: React.FC = () => {
 
   return (
     <div className="p-4">
-      <div className="mb-4 flex flex-col md:flex-row justify-between items-center">
+      <div className="mb-4 flex flex-col md:flex-row justify-between items-center gap-4">
         <input
           type="text"
           placeholder="Buscar produto..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="border p-2 rounded-md w-full md:w-1/3 mb-2 md:mb-0"
+          className="border border-gray-300 p-3 rounded-lg w-full md:w-1/3 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
 
-        <select
-          value={selectedCategory}
-          onChange={(e) => setSelectedCategory(e.target.value)}
-          className="border p-2 rounded-md w-full md:w-1/4"
-        >
-          {categories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.name}
-            </option>
-          ))}
-        </select>
+        <div className="flex gap-2 w-full md:w-auto">
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="border border-gray-300 p-3 rounded-lg flex-1 md:w-48 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
+          
+          <button
+            onClick={refreshProducts}
+            disabled={loading}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            title="Atualizar produtos"
+          >
+            {loading ? "..." : "🔄"}
+          </button>
+        </div>
       </div>
+
+      {error && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-700">{error}</p>
+          <button
+            onClick={refreshProducts}
+            className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
         {loading
           ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
           : filteredProducts.map((product) => {
-              // Verificação adicional antes de renderizar cada produto
               if (!product || !product.id || !product.name) {
-                console.warn("Produto inválido ignorado na renderização:", product);
                 return null;
               }
 
@@ -298,7 +245,7 @@ const ProductsPageContent: React.FC = () => {
                     <span className="text-xs text-blue-600 font-bold uppercase">
                       {product.category}
                     </span>
-                    <h3 className="text-lg font-semibold mt-1 mb-2 line-clamp-2">
+                    <h3 className="text-lg font-semibold mt-1 mb-2 line-clamp-2 min-h-[3.5rem]">
                       {product.name}
                     </h3>
                     <p className="text-sm text-gray-500 mb-3 line-clamp-2">
@@ -344,6 +291,14 @@ const ProductsPageContent: React.FC = () => {
               );
             })}
       </div>
+
+      {!loading && filteredProducts.length === 0 && !error && (
+        <div className="text-center py-12">
+          <p className="text-gray-500 text-lg">
+            Nenhum produto encontrado para os filtros selecionados.
+          </p>
+        </div>
+      )}
     </div>
   );
 };

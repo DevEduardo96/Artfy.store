@@ -1,22 +1,6 @@
 // src/context/FavoritesContext.tsx
 import React, { createContext, useContext, useReducer, ReactNode } from "react";
-
-// Definição local da interface Product para evitar inconsistências
-interface Product {
-  id: string;
-  name: string;
-  category: string;
-  price: number;
-  originalPrice: number | null;
-  rating: number;
-  reviews: number;
-  image: string;
-  badge: string | null;
-  description: string;
-  popularity: number;
-  fileSize: string;
-  format: string;
-}
+import { Product } from "../types";
 
 type Action =
   | { type: "TOGGLE_FAVORITE"; payload: Product }
@@ -102,15 +86,17 @@ const favoritesReducer = (state: FavoritesState, action: Action): FavoritesState
             name: String(action.payload.name || ''),
             category: String(action.payload.category || ''),
             price: Number(action.payload.price) || 0,
-            originalPrice: action.payload.originalPrice ? Number(action.payload.originalPrice) : null,
+            originalPrice: action.payload.originalPrice ? Number(action.payload.originalPrice) : undefined,
             rating: Number(action.payload.rating) || 0,
             reviews: Number(action.payload.reviews) || 0,
             image: String(action.payload.image || ''),
-            badge: action.payload.badge || null,
             description: String(action.payload.description || ''),
-            popularity: Number(action.payload.popularity) || 0,
             fileSize: String(action.payload.fileSize || ''),
             format: String(action.payload.format || ''),
+            isDigital: Boolean(action.payload.isDigital),
+            tags: Array.isArray(action.payload.tags) ? action.payload.tags : [],
+            badge: action.payload.badge || null,
+            popularity: Number(action.payload.popularity) || 0,
           };
 
           console.log("Clean product to add:", cleanProduct);
@@ -229,6 +215,3 @@ export const useFavorites = () => {
   }
   return context;
 };
-
-// Export da interface Product para usar em outros arquivos
-export type { Product };

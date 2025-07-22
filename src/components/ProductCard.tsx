@@ -60,14 +60,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             }`}
           />
         </button>
-        {product.originalPrice && (
+        {product.discount && (
           <div className="absolute top-3 left-3 bg-red-500 text-white px-2 py-1 rounded-md text-sm font-medium">
-            {Math.round(
-              ((product.originalPrice - product.price) /
-                product.originalPrice) *
-                100
-            )}
-            % OFF
+            {product.discount}% OFF
           </div>
         )}
       </div>
