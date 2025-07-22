@@ -1,5 +1,3 @@
-// src/App.tsx
-
 import { useState, useMemo, useEffect } from "react";
 import {
   BrowserRouter as Router,
@@ -32,6 +30,7 @@ import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import AboutUs from "./pages/AboutUs";
 import PaymentStatusPage from "./pages/PaymentStatusPage";
+import Status from "./pages/Status";
 
 import "sweetalert2/dist/sweetalert2.min.css";
 import ProductsPageContent from "./pages/ProductsPageContent";
@@ -126,7 +125,8 @@ function App() {
                     </>
                   }
                 />
-                <Route path="/status/:id" element={<PaymentStatusPage />} /> {/* ✅ Corrigido */}
+                <Route path="/status/:preferenceId" element={<Status />} />
+                <Route path="/status/:id" element={<PaymentStatusPage />} />
                 <Route path="/terms" element={<TermsOfService />} />
                 <Route path="/sobre" element={<AboutUs />} />
                 <Route path="/privacy" element={<PrivacyPolicy />} />
