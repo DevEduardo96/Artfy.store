@@ -39,12 +39,7 @@ const PaymentStatusPage: React.FC = () => {
       if (orderData.status === "approved") {
         const { data: downloadsData, error: downloadsError } = await supabase
           .from("downloads")
-          .select(
-            `
-            *,
-            product:products(*)
-          `
-          )
+          .select(`*, product:products(*)`)
           .eq("order_id", orderData.id);
 
         if (downloadsError) throw downloadsError;
@@ -73,14 +68,11 @@ const PaymentStatusPage: React.FC = () => {
 
       const { error } = await supabase
         .from("downloads")
-        .update({
-          download_count: currentCount + 1,
-        })
+        .update({ download_count: currentCount + 1 })
         .eq("download_token", downloadToken);
 
       if (error) throw error;
 
-      // Substitua por link real de download na sua API
       alert(`Download iniciado: ${productName}`);
 
       setDownloads((prev) =>
@@ -118,12 +110,16 @@ const PaymentStatusPage: React.FC = () => {
     );
   }
 
+  const isPending = order.status === "pending";
+  const isApproved = order.status === "approved";
+  const isFailed = order.status === "failed";
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-2xl mx-auto px-4">
         <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="text-center mb-6">
-            {order.status === "pending" && (
+            {isPending && (
               <>
                 <Clock className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
                 <h1 className="text-2xl font-bold text-gray-900 mb-2">
@@ -136,7 +132,7 @@ const PaymentStatusPage: React.FC = () => {
               </>
             )}
 
-            {order.status === "approved" && (
+            {isApproved && (
               <>
                 <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
                 <h1 className="text-2xl font-bold text-gray-900 mb-2">
@@ -148,7 +144,7 @@ const PaymentStatusPage: React.FC = () => {
               </>
             )}
 
-            {order.status === "failed" && (
+            {isFailed && (
               <>
                 <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
                 <h1 className="text-2xl font-bold text-gray-900 mb-2">
@@ -161,7 +157,7 @@ const PaymentStatusPage: React.FC = () => {
             )}
           </div>
 
-          {order.status === "pending" && (order.qr_code_base64 || qrCode) && (
+          {isPending && (order.qr_code_base64 || qrCode) && (
             <div className="border rounded-lg p-4 mb-6">
               <div className="text-center mb-4">
                 <img
@@ -192,12 +188,11 @@ const PaymentStatusPage: React.FC = () => {
             </div>
           )}
 
-          {order.status === "approved" && downloads.length > 0 && (
+          {isApproved && downloads.length > 0 && (
             <div className="space-y-4">
               <h2 className="text-lg font-semibold text-gray-900">
                 Seus Downloads
               </h2>
-
               {downloads.map((download) => (
                 <div
                   key={download.id}
@@ -220,7 +215,6 @@ const PaymentStatusPage: React.FC = () => {
                         : "Não informado"}
                     </p>
                   </div>
-
                   <button
                     onClick={() =>
                       handleDownload(
@@ -239,7 +233,7 @@ const PaymentStatusPage: React.FC = () => {
             </div>
           )}
 
-          {order.status === "approved" && downloads.length === 0 && (
+          {isApproved && downloads.length === 0 && (
             <p className="text-center text-gray-600 mt-6">
               Nenhum download disponível para este pedido.
             </p>

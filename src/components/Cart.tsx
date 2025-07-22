@@ -1,8 +1,6 @@
 import React, { useState } from "react";
 import { X, Plus, Minus, Trash2, ShoppingBag } from "lucide-react";
 import { useCart } from "../context/CartContext";
-import { supabase } from "../lib/supabase";
-import { v4 as uuidv4 } from "uuid";
 import { useNavigate } from "react-router-dom";
 
 const Cart: React.FC = () => {
@@ -33,17 +31,26 @@ const Cart: React.FC = () => {
 
   const validateEmail = (email: string) => /\S+@\S+\.\S+/.test(email);
 
-  const generateQRCode = async (amount: number, orderId: string) => {
-    // Simulação de geração de QR Code PIX
-    const pixCode = `00020126580014BR.GOV.BCB.PIX0136${orderId}520400005303986540${amount.toFixed(
-      2
-    )}5802BR5925Digital Store6009SAO PAULO62070503***6304`;
+  const gerarPagamentoPix = async (
+    carrinho: typeof state.items,
+    nomeCliente: string,
+    email: string,
+    total: number
+  ) => {
+    const response = await fetch(
+      "https://servidor-loja-digital.onrender.com/criar-pagamento",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ carrinho, nomeCliente, email, total }),
+      }
+    );
 
-    // Simulação de QR Code base64
-    const qrCodeBase64 =
-      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+    if (!response.ok) {
+      throw new Error("Erro ao gerar pagamento Pix");
+    }
 
-    return { pixCode, qrCodeBase64 };
+    return await response.json();
   };
 
   const finalizePurchase = async () => {
@@ -59,62 +66,18 @@ const Cart: React.FC = () => {
 
     setLoading(true);
     try {
-      const orderId = uuidv4();
-      const paymentId = uuidv4();
-
-      // Gerar QR Code PIX
-      const { pixCode, qrCodeBase64 } = await generateQRCode(
-        state.total,
-        orderId
+      const pagamento = await gerarPagamentoPix(
+        state.items,
+        "Cliente",
+        email,
+        state.total
       );
+      const paymentId = pagamento.id;
+      const qrCodeBase64 = pagamento.qr_code_base64;
 
-      // Criar pedido no Supabase
-      const { data: order, error: orderError } = await supabase
-        .from("orders")
-        .insert({
-          id: orderId,
-          customer_id: null, // compras sem cadastro
-          total_amount: state.total ?? 0,
-          mercadopago_payment_id: paymentId,
-          status: "pending",
-          qr_code: pixCode,
-          qr_code_base64: qrCodeBase64,
-        })
-        .select()
-        .single();
-
-      if (orderError) throw orderError;
-
-      // Criar itens do pedido
-      const orderItems = state.items.map((item) => ({
-        order_id: orderId,
-        product_id: item.product.id,
-        quantity: item.quantity,
-        unit_price: item.product.price, // corrigido para usar "price"
-      }));
-
-      const { error: itemsError } = await supabase
-        .from("order_items")
-        .insert(orderItems);
-      if (itemsError) throw itemsError;
-
-      // Criar tokens de download
-      const downloads = state.items.map((item) => ({
-        order_id: orderId,
-        product_id: item.product.id,
-        download_token: uuidv4(),
-      }));
-
-      const { error: downloadsError } = await supabase
-        .from("downloads")
-        .insert(downloads);
-      if (downloadsError) throw downloadsError;
-
-      // Limpar carrinho e fechar
       dispatch({ type: "CLEAR_CART" });
       closeCart();
 
-      // Navegar para página de status de pagamento SPA
       navigate(
         `/payment-status/${paymentId}?qr=${encodeURIComponent(
           qrCodeBase64
