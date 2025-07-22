@@ -129,7 +129,7 @@ function App() {
                   }
                 />
 
-                {/* Rota única para status do pagamento */}
+                {/* Rotaa única para status do pagamento */}
                 <Route
                   path="/payment-status/:paymentId"
                   element={<PaymentStatusPage />}
