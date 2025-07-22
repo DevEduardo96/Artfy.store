@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
-import { Loader2, Download, AlertTriangle } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
 
 interface PaymentInitData {
   id: string;
@@ -42,6 +42,7 @@ const PaymentStatusPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Dados passados pela navegação após criação do pagamento
   const initData = (location.state as PaymentInitData | undefined) || undefined;
 
   const [status, setStatus] = useState<string>(initData?.status ?? "pending");
@@ -89,7 +90,8 @@ const PaymentStatusPage: React.FC = () => {
 
   const fetchDownloadLinks = useCallback(async (token: string) => {
     try {
-      const res = await fetch(`${API_BASE}/download/${token}`); // rota que retorna todos os links para o token
+      // Altere para a rota correta que seu backend oferece para obter os links
+      const res = await fetch(`${API_BASE}/links/${token}`);
       if (!res.ok) {
         throw new Error(`Status HTTP ${res.status}`);
       }
@@ -197,7 +199,8 @@ const PaymentStatusPage: React.FC = () => {
               {downloadLinks.map((produto) => (
                 <li key={produto.id} className="mb-2">
                   <strong>{produto.nome}</strong> (Quantidade:{" "}
-                  {produto.quantidade})<br />
+                  {produto.quantidade})
+                  <br />
                   <a
                     href={produto.link_download}
                     target="_blank"
@@ -224,3 +227,4 @@ const PaymentStatusPage: React.FC = () => {
 };
 
 export default PaymentStatusPage;
+      
