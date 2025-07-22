@@ -1,0 +1,111 @@
+import React, { useState, useEffect } from "react";
+
+interface Produto {
+  id: string;
+  quantity: number;
+}
+
+export default function PagamentoPix() {
+  const [email, setEmail] = useState("");
+  const [carrinho, setCarrinho] = useState<Produto[]>([
+    { id: "1", quantity: 1 }, // ajuste para IDs reais do seu supabase
+  ]);
+  const [qrCodeBase64, setQrCodeBase64] = useState<string | null>(null);
+  const [paymentId, setPaymentId] = useState<string | null>(null);
+  const [linksDownload, setLinksDownload] = useState<
+    { nome: string; url: string }[] | null
+  >(null);
+  const [erro, setErro] = useState<string | null>(null);
+
+  async function criarPagamento() {
+    setErro(null);
+    setLinksDownload(null);
+    setQrCodeBase64(null);
+    setPaymentId(null);
+
+    try {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/criar-pagamento`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, carrinho }),
+      });
+
+      if (!res.ok) {
+        setErro("Erro ao criar pagamento");
+        return;
+      }
+
+      const data = await res.json();
+      setPaymentId(data.paymentId);
+      setQrCodeBase64(data.qrCodeBase64);
+    } catch (error) {
+      setErro("Erro na comunicação com o servidor");
+    }
+  }
+
+  useEffect(() => {
+    if (!paymentId) return;
+
+    const interval = setInterval(async () => {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/links/${paymentId}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.links && data.links.length > 0) {
+          setLinksDownload(data.links);
+          clearInterval(interval);
+        }
+      }
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [paymentId]);
+
+  return (
+    <div style={{ maxWidth: 400, margin: "auto", padding: 20 }}>
+      <h2>Pagamento Pix - Loja Digital</h2>
+
+      <label>
+        Seu email:
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          style={{ width: "100%", marginBottom: 12 }}
+        />
+      </label>
+
+      <button onClick={criarPagamento} disabled={!email || carrinho.length === 0}>
+        Gerar QR Code Pix
+      </button>
+
+      {erro && <p style={{ color: "red" }}>{erro}</p>}
+
+      {qrCodeBase64 && (
+        <div style={{ marginTop: 20 }}>
+          <h3>Escaneie o QR Code para pagar:</h3>
+          <img
+            src={`data:image/png;base64,${qrCodeBase64}`}
+            alt="QR Code Pix"
+            style={{ width: 250, height: 250 }}
+          />
+        </div>
+      )}
+
+      {linksDownload && (
+        <div style={{ marginTop: 20 }}>
+          <h3>Download liberado! Clique para baixar:</h3>
+          <ul>
+            {linksDownload.map(({ nome, url }) => (
+              <li key={url}>
+                <a href={url} target="_blank" rel="noopener noreferrer">
+                  {nome}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
