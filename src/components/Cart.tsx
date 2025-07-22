@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { X, Plus, Minus, Trash2, ShoppingBag, Copy } from "lucide-react";
+import { X, Plus, Minus, Trash2, ShoppingBag } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { useNavigate } from "react-router-dom";
 
@@ -40,6 +40,11 @@ const Cart: React.FC = () => {
       return;
     }
 
+    if (state.items.length === 0) {
+      alert("Seu carrinho está vazio.");
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await fetch(
@@ -51,13 +56,9 @@ const Cart: React.FC = () => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            nomeCliente: email.split("@")[0], // Nome temporário baseado no email
-            email: email,
-            total: state.total,
+            email,
             carrinho: state.items.map((item) => ({
               id: item.product.id,
-              name: item.product.name,
-              price: item.product.price,
               quantity: item.quantity,
             })),
           }),
@@ -68,16 +69,9 @@ const Cart: React.FC = () => {
 
       const data = await response.json();
 
-      if (data.id) {
+      if (data.preference_id) {
         closeCart();
-        navigate(`/status/${data.id}`, {
-          state: {
-            id: data.id,
-            status: data.status,
-            qr_code_base64: data.qr_code_base64,
-            qr_code: data.qr_code,
-          },
-        });
+        navigate(`/status/${data.preference_id}`);
       } else {
         alert("Erro ao gerar QR Code");
       }
