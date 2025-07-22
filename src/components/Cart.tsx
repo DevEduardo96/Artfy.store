@@ -1,32 +1,32 @@
-import React, { useState } from "react";
-import { X, Plus, Minus, Trash2, ShoppingBag } from "lucide-react";
-import { useCart } from "../context/CartContext";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from 'react';
+import { X, Plus, Minus, Trash2, ShoppingBag } from 'lucide-react';
+import { useCart } from '../context/CartContext';
+import { useNavigate } from 'react-router-dom';
 
 const Cart: React.FC = () => {
   const { state, dispatch } = useCart();
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const closeCart = () => dispatch({ type: "CLOSE_CART" });
+  const closeCart = () => dispatch({ type: 'CLOSE_CART' });
 
   const updateQuantity = (id: string, quantity: number) => {
     if (quantity <= 0) {
-      dispatch({ type: "REMOVE_ITEM", payload: id });
+      dispatch({ type: 'REMOVE_ITEM', payload: id });
     } else {
-      dispatch({ type: "UPDATE_QUANTITY", payload: { id, quantity } });
+      dispatch({ type: 'UPDATE_QUANTITY', payload: { id, quantity } });
     }
   };
 
   const removeItem = (id: string) => {
-    dispatch({ type: "REMOVE_ITEM", payload: id });
+    dispatch({ type: 'REMOVE_ITEM', payload: id });
   };
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
     }).format(price);
   };
 
@@ -36,12 +36,12 @@ const Cart: React.FC = () => {
 
   const finalizePurchase = async () => {
     if (!validateEmail(email)) {
-      alert("Por favor, insira um e-mail válido.");
+      alert('Por favor, insira um e-mail válido.');
       return;
     }
 
     if (state.items.length === 0) {
-      alert("Seu carrinho está vazio.");
+      alert('Seu carrinho está vazio.');
       return;
     }
 
@@ -50,11 +50,11 @@ const Cart: React.FC = () => {
       const response = await fetch(
         `${
           import.meta.env.VITE_BACKEND_URL ||
-          "https://servidor-loja-digital.onrender.com"
+          'https://servidor-loja-digital.onrender.com'
         }/criar-pagamento`,
         {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             email,
             carrinho: state.items.map((item) => ({
@@ -65,7 +65,7 @@ const Cart: React.FC = () => {
         }
       );
 
-      if (!response.ok) throw new Error("Erro na requisição");
+      if (!response.ok) throw new Error('Erro na requisição');
 
       const data = await response.json();
 
@@ -73,11 +73,11 @@ const Cart: React.FC = () => {
         closeCart();
         navigate(`/status/${data.preference_id}`);
       } else {
-        alert("Erro ao gerar QR Code");
+        alert('Erro ao gerar QR Code');
       }
     } catch (err) {
       console.error(err);
-      alert("Erro ao finalizar compra");
+      alert('Erro ao finalizar compra');
     } finally {
       setLoading(false);
     }
@@ -200,7 +200,7 @@ const Cart: React.FC = () => {
                 disabled={loading}
                 className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-3 rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-300 disabled:opacity-50"
               >
-                {loading ? "Gerando Pix..." : "Finalizar Compra"}
+                {loading ? 'Gerando Pix...' : 'Finalizar Compra'}
               </button>
             </div>
           )}
