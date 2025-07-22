@@ -7,7 +7,6 @@ interface PaymentInitData {
   status: string;
   qr_code_base64?: string;
   qr_code?: string;
-  ticket_url?: string;
 }
 
 interface StatusResponse {
@@ -16,11 +15,27 @@ interface StatusResponse {
   qr_code?: string;
 }
 
-interface LinkResponse {
-  link: string;
+interface ProdutoDownload {
+  id: string;
+  nome: string;
+  link_download: string;
+  quantidade: number;
 }
 
-const API_BASE = "https://servidor-loja-digital.onrender.com";
+interface LinkResponse {
+  cliente_email: string;
+  produtos: ProdutoDownload[];
+  pagamento: {
+    id: string;
+    aprovado_em: string;
+    valido_ate: string;
+    dias_restantes: number;
+  };
+}
+
+const API_BASE =
+  import.meta.env.VITE_BACKEND_URL ||
+  "https://servidor-loja-digital.onrender.com";
 
 const PaymentStatusPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -30,11 +45,15 @@ const PaymentStatusPage: React.FC = () => {
   const initData = (location.state as PaymentInitData | undefined) || undefined;
 
   const [status, setStatus] = useState<string>(initData?.status ?? "pending");
-  const [downloadLink, setDownloadLink] = useState<string | null>(null);
+  const [downloadLinks, setDownloadLinks] = useState<ProdutoDownload[] | null>(
+    null
+  );
   const [qrCodeBase64, setQrCodeBase64] = useState<string | null>(
     initData?.qr_code_base64 || null
   );
-  const [pixCode, setPixCode] = useState<string | null>(initData?.qr_code || null);
+  const [pixCode, setPixCode] = useState<string | null>(
+    initData?.qr_code || null
+  );
   const [error, setError] = useState<string | null>(null);
   const [checking, setChecking] = useState<boolean>(false);
 
@@ -58,7 +77,7 @@ const PaymentStatusPage: React.FC = () => {
       if (data.qr_code) setPixCode(data.qr_code);
 
       if (data.status === "approved") {
-        await fetchLinkDownload(id);
+        await fetchDownloadLinks(id);
       }
     } catch (err) {
       console.error("❌ Erro ao consultar status:", err);
@@ -68,18 +87,20 @@ const PaymentStatusPage: React.FC = () => {
     }
   }, [id]);
 
-  const fetchLinkDownload = useCallback(async (paymentId: string) => {
+  const fetchDownloadLinks = useCallback(async (token: string) => {
     try {
-      const res = await fetch(`${API_BASE}/link-download/${paymentId}`);
+      const res = await fetch(`${API_BASE}/download/${token}`); // rota que retorna todos os links para o token
       if (!res.ok) {
         throw new Error(`Status HTTP ${res.status}`);
       }
       const data: LinkResponse = await res.json();
-      setDownloadLink(data.link);
+
+      setDownloadLinks(data.produtos);
       setQrCodeBase64(null);
+      setError(null);
     } catch (err) {
-      console.error("❌ Erro ao buscar link de download:", err);
-      setError("Pagamento aprovado, mas falha ao obter link de download.");
+      console.error("❌ Erro ao buscar links de download:", err);
+      setError("Pagamento aprovado, mas falha ao obter links de download.");
     }
   }, []);
 
@@ -87,7 +108,7 @@ const PaymentStatusPage: React.FC = () => {
     if (!id) return;
 
     if (initData?.status === "approved") {
-      fetchLinkDownload(id);
+      fetchDownloadLinks(id);
       return;
     }
 
@@ -95,7 +116,7 @@ const PaymentStatusPage: React.FC = () => {
 
     const interval = setInterval(fetchStatus, 5000);
     return () => clearInterval(interval);
-  }, [id, initData?.status, fetchStatus, fetchLinkDownload]);
+  }, [id, initData?.status, fetchStatus, fetchDownloadLinks]);
 
   const copyPixCode = () => {
     const text = pixCode || "";
@@ -106,7 +127,8 @@ const PaymentStatusPage: React.FC = () => {
       .catch(() => alert("Não foi possível copiar o código Pix."));
   };
 
-  const missingQrBecauseNoState = !qrCodeBase64 && status !== "approved" && !initData?.qr_code;
+  const missingQrBecauseNoState =
+    !qrCodeBase64 && status !== "approved" && !initData?.qr_code;
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
@@ -125,7 +147,8 @@ const PaymentStatusPage: React.FC = () => {
         {!checking && status !== "approved" && (qrCodeBase64 || pixCode) && (
           <div className="space-y-3">
             <p className="text-gray-700">
-              Seu pagamento está pendente. Escaneie o QR Code abaixo ou copie o código Pix:
+              Seu pagamento está pendente. Escaneie o QR Code abaixo ou copie o
+              código Pix:
             </p>
             {qrCodeBase64 && (
               <div className="bg-gray-50 p-4 rounded-lg">
@@ -146,7 +169,8 @@ const PaymentStatusPage: React.FC = () => {
               </button>
             )}
             <p className="text-xs text-gray-500">
-              Status atual: <span className="capitalize font-semibold">{status}</span>
+              Status atual:{" "}
+              <span className="capitalize font-semibold">{status}</span>
             </p>
           </div>
         )}
@@ -158,25 +182,33 @@ const PaymentStatusPage: React.FC = () => {
               <strong className="capitalize text-blue-600">{status}</strong>
             </p>
             <p className="text-sm text-yellow-600">
-              QR Code indisponível (página recarregada?). Volte para o carrinho e gere o Pix novamente.
+              QR Code indisponível (página recarregada?). Volte para o carrinho
+              e gere o Pix novamente.
             </p>
           </div>
         )}
 
-        {downloadLink && (
-          <div className="space-y-4 mt-4">
+        {downloadLinks && (
+          <div className="space-y-4 mt-4 text-left">
             <p className="text-green-600 font-semibold">
-              ✅ Pagamento aprovado! Seu link de download está pronto:
+              ✅ Pagamento aprovado! Seus links de download:
             </p>
-            <a
-              href={downloadLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Baixar Arquivo
-            </a>
+            <ul className="list-disc list-inside">
+              {downloadLinks.map((produto) => (
+                <li key={produto.id} className="mb-2">
+                  <strong>{produto.nome}</strong> (Quantidade:{" "}
+                  {produto.quantidade})<br />
+                  <a
+                    href={produto.link_download}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 underline hover:text-blue-800"
+                  >
+                    Baixar arquivo
+                  </a>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
 

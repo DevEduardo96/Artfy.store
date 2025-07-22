@@ -73,7 +73,7 @@ Deno.serve(async (req: Request) => {
           .select(`
             *,
             customers (*),
-            order_items (*, products (*))
+            order_items (*, produtos (*))
           `)
           .eq('mercadopago_payment_id', paymentId)
           .single();
@@ -87,7 +87,7 @@ Deno.serve(async (req: Request) => {
               .select(`
                 *,
                 customers (*),
-                order_items (*, products (*))
+                order_items (*, produtos (*))
               `)
               .eq('id', paymentData.external_reference)
               .single();
@@ -146,7 +146,7 @@ Deno.serve(async (req: Request) => {
               order_id: order.id,
               product_id: item.product_id,
               download_token: crypto.randomUUID(),
-              max_downloads: 5,
+              max_downloads: 3,
               download_count: 0,
               expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
             }));

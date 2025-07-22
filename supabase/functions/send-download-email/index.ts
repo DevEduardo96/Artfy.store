@@ -34,7 +34,7 @@ Deno.serve(async (req: Request) => {
         .from('downloads')
         .select(`
           *,
-          products (name, description)
+          produtos (nome, descricao)
         `)
         .eq('order_id', orderId);
 
@@ -48,7 +48,7 @@ Deno.serve(async (req: Request) => {
 
       // Gera os links de download
       const downloadLinks = downloads.map(download => ({
-        productName: download.products.name,
+        productName: download.produtos.nome,
         downloadUrl: `${Deno.env.get('SUPABASE_URL')}/functions/v1/download-file?token=${download.download_token}`,
         expiresAt: new Date(download.expires_at).toLocaleDateString('pt-BR'),
       }));
@@ -91,7 +91,7 @@ Deno.serve(async (req: Request) => {
               <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 6px; margin-top: 20px;">
                 <strong>⚠️ Importante:</strong>
                 <ul>
-                  <li>Cada link pode ser usado até 5 vezes</li>
+                  <li>Cada link pode ser usado até 3 vezes</li>
                   <li>Os links expiram em 7 dias</li>
                   <li>Faça backup dos seus arquivos</li>
                 </ul>
@@ -106,7 +106,13 @@ Deno.serve(async (req: Request) => {
         </html>
       `;
 
-      // Envia o email usando Resend (você pode trocar por outro provedor)
+      // Para desenvolvimento, vamos simular o envio do email
+      // Em produção, você pode usar Resend, SendGrid, etc.
+      console.log('📧 Email simulado enviado para:', customerEmail);
+      console.log('📧 Conteúdo do email:', emailHtml);
+
+      // Aqui você pode integrar com um provedor de email real:
+      /*
       const emailResponse = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -114,20 +120,13 @@ Deno.serve(async (req: Request) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: 'noreply@seudominio.com', // Substitua pelo seu domínio
+          from: 'noreply@seudominio.com',
           to: [customerEmail],
           subject: '🎉 Seus downloads estão prontos!',
           html: emailHtml,
         }),
       });
-
-      if (!emailResponse.ok) {
-        const errorData = await emailResponse.text();
-        console.error('❌ Erro ao enviar email:', errorData);
-        throw new Error('Falha ao enviar email');
-      }
-
-      console.log('📧 Email enviado com sucesso para:', customerEmail);
+      */
 
       return new Response(
         JSON.stringify({ success: true, message: 'Email enviado com sucesso' }),

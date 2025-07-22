@@ -32,7 +32,7 @@ Deno.serve(async (req: Request) => {
       .from('downloads')
       .select(`
         *,
-        products (name, download_url),
+        produtos (nome, link_download),
         orders (status)
       `)
       .eq('download_token', token)
@@ -65,7 +65,7 @@ Deno.serve(async (req: Request) => {
       .eq('id', download.id);
 
     // Redireciona para o arquivo real
-    return Response.redirect(download.products.download_url, 302);
+    return Response.redirect(download.produtos.link_download, 302);
 
   } catch (error) {
     console.error('❌ Erro no download:', error);

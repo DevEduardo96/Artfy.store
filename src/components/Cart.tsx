@@ -42,16 +42,27 @@ const Cart: React.FC = () => {
 
     setLoading(true);
     try {
-      const response = await fetch("https://servidor-loja-digital.onrender.com/criar-pagamento", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          carrinho: state.items,
-          nomeCliente: "Cliente Teste",
-          email,
-          total: state.total,
-        }),
-      });
+      const response = await fetch(
+        `${
+          import.meta.env.VITE_BACKEND_URL ||
+          "https://servidor-loja-digital.onrender.com"
+        }/criar-pagamento`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            nomeCliente: email.split("@")[0], // Nome temporário baseado no email
+            email: email,
+            total: state.total,
+            carrinho: state.items.map((item) => ({
+              id: item.product.id,
+              name: item.product.name,
+              price: item.product.price,
+              quantity: item.quantity,
+            })),
+          }),
+        }
+      );
 
       if (!response.ok) throw new Error("Erro na requisição");
 
@@ -59,7 +70,14 @@ const Cart: React.FC = () => {
 
       if (data.id) {
         closeCart();
-        navigate(`/status/${data.id}`); // 🔁 redireciona para tela de status
+        navigate(`/status/${data.id}`, {
+          state: {
+            id: data.id,
+            status: data.status,
+            qr_code_base64: data.qr_code_base64,
+            qr_code: data.qr_code,
+          },
+        });
       } else {
         alert("Erro ao gerar QR Code");
       }
@@ -75,12 +93,18 @@ const Cart: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
-      <div className="absolute inset-0 bg-black bg-opacity-50" onClick={closeCart} />
+      <div
+        className="absolute inset-0 bg-black bg-opacity-50"
+        onClick={closeCart}
+      />
       <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl">
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between p-4 border-b">
             <h2 className="text-lg font-semibold text-gray-800">Carrinho</h2>
-            <button onClick={closeCart} className="p-2 hover:bg-gray-100 rounded-full">
+            <button
+              onClick={closeCart}
+              className="p-2 hover:bg-gray-100 rounded-full"
+            >
               <X className="h-5 w-5" />
             </button>
           </div>
@@ -94,20 +118,46 @@ const Cart: React.FC = () => {
             ) : (
               <div className="space-y-4">
                 {state.items.map((item) => (
-                  <div key={item.product.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                    <img src={item.product.image} alt={item.product.name} className="w-16 h-16 object-cover rounded-lg" />
+                  <div
+                    key={item.product.id}
+                    className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg"
+                  >
+                    <img
+                      src={item.product.image}
+                      alt={item.product.name}
+                      className="w-16 h-16 object-cover rounded-lg"
+                    />
                     <div className="flex-1">
-                      <h3 className="font-medium text-gray-800 text-sm line-clamp-2">{item.product.name}</h3>
-                      <p className="text-blue-600 font-semibold">{formatPrice(item.product.price)}</p>
+                      <h3 className="font-medium text-gray-800 text-sm line-clamp-2">
+                        {item.product.name}
+                      </h3>
+                      <p className="text-blue-600 font-semibold">
+                        {formatPrice(item.product.price)}
+                      </p>
                       <div className="flex items-center space-x-2 mt-2">
-                        <button onClick={() => updateQuantity(item.product.id, item.quantity - 1)} className="p-1 hover:bg-gray-200 rounded">
+                        <button
+                          onClick={() =>
+                            updateQuantity(item.product.id, item.quantity - 1)
+                          }
+                          className="p-1 hover:bg-gray-200 rounded"
+                        >
                           <Minus className="h-4 w-4" />
                         </button>
-                        <span className="px-2 py-1 bg-white rounded text-sm">{item.quantity}</span>
-                        <button onClick={() => updateQuantity(item.product.id, item.quantity + 1)} className="p-1 hover:bg-gray-200 rounded">
+                        <span className="px-2 py-1 bg-white rounded text-sm">
+                          {item.quantity}
+                        </span>
+                        <button
+                          onClick={() =>
+                            updateQuantity(item.product.id, item.quantity + 1)
+                          }
+                          className="p-1 hover:bg-gray-200 rounded"
+                        >
                           <Plus className="h-4 w-4" />
                         </button>
-                        <button onClick={() => removeItem(item.product.id)} className="p-1 hover:bg-red-100 rounded text-red-600">
+                        <button
+                          onClick={() => removeItem(item.product.id)}
+                          className="p-1 hover:bg-red-100 rounded text-red-600"
+                        >
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
@@ -119,7 +169,10 @@ const Cart: React.FC = () => {
 
             {state.items.length > 0 && (
               <div className="mt-6">
-                <label htmlFor="email" className="block mb-1 font-semibold text-gray-700">
+                <label
+                  htmlFor="email"
+                  className="block mb-1 font-semibold text-gray-700"
+                >
                   Seu e-mail para receber o link de download:
                 </label>
                 <input
@@ -133,7 +186,8 @@ const Cart: React.FC = () => {
                 />
                 <div className="mb-4 p-4 bg-yellow-100 border-l-4 border-yellow-400 text-yellow-800 text-sm rounded shadow-sm">
                   <strong className="block font-semibold mb-1">Atenção:</strong>
-                  Após clicar em <strong>Finalizar Compra</strong>, você será redirecionado para o status do pagamento.
+                  Após clicar em <strong>Finalizar Compra</strong>, você será
+                  redirecionado para o status do pagamento.
                 </div>
               </div>
             )}
@@ -143,7 +197,9 @@ const Cart: React.FC = () => {
             <div className="border-t p-4 space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-lg font-semibold">Total:</span>
-                <span className="text-2xl font-bold text-blue-600">{formatPrice(state.total)}</span>
+                <span className="text-2xl font-bold text-blue-600">
+                  {formatPrice(state.total)}
+                </span>
               </div>
               <button
                 onClick={finalizePurchase}
