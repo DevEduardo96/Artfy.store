@@ -1,39 +1,11 @@
 export interface Product {
   id: string;
-  name: string;
-  description: string;
-  price: number;
-  originalPrice?: number;
-  image: string;
-  category: string;
-  tags: string[];
-  rating: number;
-  reviews: number;
-  downloadUrl?: string;
-  fileSize?: string;
-  format?: string;
-  isDigital: boolean;
-  badge?: string | null;
-  popularity?: number;
-  discount?: number;
-  featured?: boolean;
-}
-
-export interface ProdutoSupabase {
-  id: string;
   nome: string;
-  descricao: string | null;
-  categoria: string | null;
-  preco_original: number | null;
+  descricao: string;
   preco: number;
-  desconto: number | null;
-  tamanho: string | null;
-  formato: string | null;
-  imagem: string | null;
-  link_download: string | null;
-  avaliacao: number | null;
-  qtd_avaliacoes: number | null;
-  destaque: boolean;
+  imagem: string;
+  link_download: string;
+  categoria: string;
   created_at: string;
 }
 
@@ -42,18 +14,34 @@ export interface CartItem {
   quantity: number;
 }
 
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  avatar?: string;
-}
-
 export interface Order {
   id: string;
-  userId: string;
-  items: CartItem[];
-  total: number;
-  status: 'pending' | 'completed' | 'cancelled';
-  createdAt: Date;
+  customer_email: string;
+  total_amount: number;
+  status: 'pending' | 'approved' | 'failed';
+  payment_id: string;
+  qr_code?: string;
+  qr_code_base64?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OrderItem {
+  id: string;
+  order_id: string;
+  product_id: string;
+  quantity: number;
+  unit_price: number;
+  created_at: string;
+}
+
+export interface Download {
+  id: string;
+  order_id: string;
+  product_id: string;
+  download_token: string;
+  download_count: number;
+  max_downloads: number;
+  expires_at: string;
+  created_at: string;
 }

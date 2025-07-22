@@ -1,83 +1,128 @@
-import React, { useState } from 'react';
-import { X, Plus, Minus, Trash2, ShoppingBag } from 'lucide-react';
-import { useCart } from '../context/CartContext';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { X, Plus, Minus, Trash2, ShoppingBag } from "lucide-react";
+import { useCart } from "../context/CartContext";
+import { supabase } from "../lib/supabase";
+import { v4 as uuidv4 } from "uuid";
+import { useNavigate } from "react-router-dom";
 
 const Cart: React.FC = () => {
   const { state, dispatch } = useCart();
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const closeCart = () => dispatch({ type: 'CLOSE_CART' });
+  const closeCart = () => dispatch({ type: "CLOSE_CART" });
 
   const updateQuantity = (id: string, quantity: number) => {
     if (quantity <= 0) {
-      dispatch({ type: 'REMOVE_ITEM', payload: id });
+      dispatch({ type: "REMOVE_ITEM", payload: id });
     } else {
-      dispatch({ type: 'UPDATE_QUANTITY', payload: { id, quantity } });
+      dispatch({ type: "UPDATE_QUANTITY", payload: { id, quantity } });
     }
   };
 
   const removeItem = (id: string) => {
-    dispatch({ type: 'REMOVE_ITEM', payload: id });
+    dispatch({ type: "REMOVE_ITEM", payload: id });
   };
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
+  const formatPrice = (price: number) =>
+    new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
     }).format(price);
-  };
 
-  const validateEmail = (email: string) => {
-    return /\S+@\S+\.\S+/.test(email);
+  const validateEmail = (email: string) => /\S+@\S+\.\S+/.test(email);
+
+  const generateQRCode = async (amount: number, orderId: string) => {
+    // Simulação de geração de QR Code PIX
+    const pixCode = `00020126580014BR.GOV.BCB.PIX0136${orderId}520400005303986540${amount.toFixed(
+      2
+    )}5802BR5925Digital Store6009SAO PAULO62070503***6304`;
+
+    // Simulação de QR Code base64
+    const qrCodeBase64 =
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+
+    return { pixCode, qrCodeBase64 };
   };
 
   const finalizePurchase = async () => {
     if (!validateEmail(email)) {
-      alert('Por favor, insira um e-mail válido.');
+      alert("Por favor, insira um e-mail válido.");
       return;
     }
 
     if (state.items.length === 0) {
-      alert('Seu carrinho está vazio.');
+      alert("Seu carrinho está vazio.");
       return;
     }
 
     setLoading(true);
     try {
-      const response = await fetch(
-        `${
-          import.meta.env.VITE_BACKEND_URL ||
-          'https://servidor-loja-digital.onrender.com'
-        }/criar-pagamento`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email,
-            carrinho: state.items.map((item) => ({
-              id: item.product.id,
-              quantity: item.quantity,
-            })),
-          }),
-        }
+      const orderId = uuidv4();
+      const paymentId = uuidv4();
+
+      // Gerar QR Code PIX
+      const { pixCode, qrCodeBase64 } = await generateQRCode(
+        state.total,
+        orderId
       );
 
-      if (!response.ok) throw new Error('Erro na requisição');
+      // Criar pedido no Supabase
+      const { data: order, error: orderError } = await supabase
+        .from("orders")
+        .insert({
+          id: orderId,
+          customer_id: null, // compras sem cadastro
+          total_amount: state.total ?? 0,
+          mercadopago_payment_id: paymentId,
+          status: "pending",
+          qr_code: pixCode,
+          qr_code_base64: qrCodeBase64,
+        })
+        .select()
+        .single();
 
-      const data = await response.json();
+      if (orderError) throw orderError;
 
-      if (data.preference_id) {
-        closeCart();
-        navigate(`/status/${data.preference_id}`);
-      } else {
-        alert('Erro ao gerar QR Code');
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Erro ao finalizar compra');
+      // Criar itens do pedido
+      const orderItems = state.items.map((item) => ({
+        order_id: orderId,
+        product_id: item.product.id,
+        quantity: item.quantity,
+        unit_price: item.product.price, // corrigido para usar "price"
+      }));
+
+      const { error: itemsError } = await supabase
+        .from("order_items")
+        .insert(orderItems);
+      if (itemsError) throw itemsError;
+
+      // Criar tokens de download
+      const downloads = state.items.map((item) => ({
+        order_id: orderId,
+        product_id: item.product.id,
+        download_token: uuidv4(),
+      }));
+
+      const { error: downloadsError } = await supabase
+        .from("downloads")
+        .insert(downloads);
+      if (downloadsError) throw downloadsError;
+
+      // Limpar carrinho e fechar
+      dispatch({ type: "CLEAR_CART" });
+      closeCart();
+
+      // Navegar para página de status de pagamento SPA
+      navigate(
+        `/payment-status/${paymentId}?qr=${encodeURIComponent(
+          qrCodeBase64
+        )}&email=${encodeURIComponent(email)}`
+      );
+    } catch (error) {
+      console.error("Erro ao finalizar compra:", error);
+      alert("Erro ao finalizar compra. Tente novamente.");
     } finally {
       setLoading(false);
     }
@@ -117,7 +162,7 @@ const Cart: React.FC = () => {
                     className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg"
                   >
                     <img
-                      src={item.product.image}
+                      src={item.product.image_url}
                       alt={item.product.name}
                       className="w-16 h-16 object-cover rounded-lg"
                     />
@@ -181,7 +226,7 @@ const Cart: React.FC = () => {
                 <div className="mb-4 p-4 bg-yellow-100 border-l-4 border-yellow-400 text-yellow-800 text-sm rounded shadow-sm">
                   <strong className="block font-semibold mb-1">Atenção:</strong>
                   Após clicar em <strong>Finalizar Compra</strong>, você será
-                  redirecionado para o status do pagamento.
+                  redirecionado para o status do pagamento com o QR Code PIX.
                 </div>
               </div>
             )}
@@ -200,7 +245,7 @@ const Cart: React.FC = () => {
                 disabled={loading}
                 className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-3 rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-300 disabled:opacity-50"
               >
-                {loading ? 'Gerando Pix...' : 'Finalizar Compra'}
+                {loading ? "Gerando PIX..." : "Finalizar Compra"}
               </button>
             </div>
           )}

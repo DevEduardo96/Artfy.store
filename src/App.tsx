@@ -30,7 +30,6 @@ import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import AboutUs from "./pages/AboutUs";
 import PaymentStatusPage from "./pages/PaymentStatusPage";
-import Status from "./pages/Status";
 
 import "sweetalert2/dist/sweetalert2.min.css";
 import ProductsPageContent from "./pages/ProductsPageContent";
@@ -44,10 +43,10 @@ function App() {
     const loadProducts = async () => {
       try {
         const fetchedProducts = await fetchProducts();
-        console.log('🏠 Produtos carregados na Home:', fetchedProducts.length);
+        console.log("🏠 Produtos carregados na Home:", fetchedProducts.length);
         setProducts(fetchedProducts);
       } catch (error) {
-        console.error('Erro ao carregar produtos:', error);
+        console.error("Erro ao carregar produtos:", error);
       } finally {
         setLoading(false);
       }
@@ -61,12 +60,12 @@ function App() {
       ...new Set(products.map((product) => product.category)),
     ];
     return uniqueCategories;
-  }, []);
+  }, [products]);
 
   const filteredProducts = useMemo(() => {
     if (selectedCategory === "Todos") return products;
     return products.filter((product) => product.category === selectedCategory);
-  }, [selectedCategory]);
+  }, [selectedCategory, products]);
 
   return (
     <AuthProvider>
@@ -83,9 +82,13 @@ function App() {
                       <Hero />
                       {loading ? (
                         <main className="container mx-auto px-4 py-12">
+                          {/* Skeleton loaders */}
                           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
                             {Array.from({ length: 6 }).map((_, i) => (
-                              <div key={i} className="bg-white rounded-xl shadow-md overflow-hidden animate-pulse">
+                              <div
+                                key={i}
+                                className="bg-white rounded-xl shadow-md overflow-hidden animate-pulse"
+                              >
                                 <div className="bg-gray-300 h-48 w-full"></div>
                                 <div className="p-5">
                                   <div className="h-4 bg-gray-300 rounded w-1/4 mb-2"></div>
@@ -125,8 +128,14 @@ function App() {
                     </>
                   }
                 />
-                <Route path="/status/:preferenceId" element={<Status />} />
-                <Route path="/status/:id" element={<PaymentStatusPage />} />
+
+                {/* Rota única para status do pagamento */}
+                <Route
+                  path="/payment-status/:paymentId"
+                  element={<PaymentStatusPage />}
+                />
+
+                {/* Outras rotas normais */}
                 <Route path="/terms" element={<TermsOfService />} />
                 <Route path="/sobre" element={<AboutUs />} />
                 <Route path="/privacy" element={<PrivacyPolicy />} />
@@ -150,6 +159,7 @@ function App() {
                     />
                   }
                 />
+                {/* Rota catch-all */}
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
               <Cart />

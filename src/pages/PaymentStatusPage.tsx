@@ -1,230 +1,279 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { useParams, useLocation, useNavigate } from "react-router-dom";
-import { Loader2, AlertTriangle } from "lucide-react";
-
-interface PaymentInitData {
-  id: string;
-  status: string;
-  qr_code_base64?: string;
-  qr_code?: string;
-}
-
-interface StatusResponse {
-  status: string;
-  qr_code_base64?: string;
-  qr_code?: string;
-}
-
-interface ProdutoDownload {
-  id: string;
-  nome: string;
-  link_download: string;
-  quantidade: number;
-}
-
-interface LinkResponse {
-  cliente_email: string;
-  produtos: ProdutoDownload[];
-  pagamento: {
-    id: string;
-    aprovado_em: string;
-    valido_ate: string;
-    dias_restantes: number;
-  };
-}
-
-const API_BASE =
-  import.meta.env.VITE_BACKEND_URL ||
-  "https://servidor-loja-digital.onrender.com";
+import React, { useEffect, useState } from "react";
+import { useParams, useSearchParams } from "react-router-dom";
+import { CheckCircle, Clock, XCircle, Download, Copy } from "lucide-react";
+import { supabase } from "../lib/supabase";
+import { Order, Download as DownloadType, Product } from "../types";
 
 const PaymentStatusPage: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const { paymentId } = useParams<{ paymentId: string }>();
+  const [searchParams] = useSearchParams();
+  const qrCode = searchParams.get("qr");
 
-  // Dados passados pela navegação após criação do pagamento
-  const initData = (location.state as PaymentInitData | undefined) || undefined;
-
-  const [status, setStatus] = useState<string>(initData?.status ?? "pending");
-  const [downloadLinks, setDownloadLinks] = useState<ProdutoDownload[] | null>(
-    null
-  );
-  const [qrCodeBase64, setQrCodeBase64] = useState<string | null>(
-    initData?.qr_code_base64 || null
-  );
-  const [pixCode, setPixCode] = useState<string | null>(
-    initData?.qr_code || null
-  );
-  const [error, setError] = useState<string | null>(null);
-  const [checking, setChecking] = useState<boolean>(false);
+  const [order, setOrder] = useState<Order | null>(null);
+  const [downloads, setDownloads] = useState<
+    (DownloadType & { product: Product })[]
+  >([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!id) {
-      setError("ID de pagamento inválido.");
+    if (paymentId) {
+      fetchOrderStatus();
+      const interval = setInterval(fetchOrderStatus, 5000);
+      return () => clearInterval(interval);
     }
-  }, [id]);
+  }, [paymentId]);
 
-  const fetchStatus = useCallback(async () => {
-    if (!id) return;
-    setChecking(true);
+  const fetchOrderStatus = async () => {
+    if (!paymentId) return;
+
     try {
-      const res = await fetch(`${API_BASE}/status-pagamento/${id}`);
-      if (!res.ok) {
-        throw new Error(`Status HTTP ${res.status}`);
-      }
-      const data: StatusResponse = await res.json();
-      setStatus(data.status);
-      if (data.qr_code_base64) setQrCodeBase64(data.qr_code_base64);
-      if (data.qr_code) setPixCode(data.qr_code);
+      const { data: orderData, error: orderError } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("mercadopago_payment_id", paymentId)
+        .single();
 
-      if (data.status === "approved") {
-        await fetchDownloadLinks(id);
+      if (orderError) throw orderError;
+      setOrder(orderData);
+
+      if (orderData.status === "approved") {
+        const { data: downloadsData, error: downloadsError } = await supabase
+          .from("downloads")
+          .select(
+            `
+            *,
+            product:products(*)
+          `
+          )
+          .eq("order_id", orderData.id);
+
+        if (downloadsError) throw downloadsError;
+        setDownloads(downloadsData || []);
       }
-    } catch (err) {
-      console.error("❌ Erro ao consultar status:", err);
-      setError("Erro ao consultar status do pagamento.");
+    } catch (error) {
+      console.error("Erro ao buscar status do pedido:", error);
     } finally {
-      setChecking(false);
+      setLoading(false);
     }
-  }, [id]);
-
-  const fetchDownloadLinks = useCallback(async (token: string) => {
-    try {
-      // Altere para a rota correta que seu backend oferece para obter os links
-      const res = await fetch(`${API_BASE}/links/${token}`);
-      if (!res.ok) {
-        throw new Error(`Status HTTP ${res.status}`);
-      }
-      const data: LinkResponse = await res.json();
-
-      setDownloadLinks(data.produtos);
-      setQrCodeBase64(null);
-      setError(null);
-    } catch (err) {
-      console.error("❌ Erro ao buscar links de download:", err);
-      setError("Pagamento aprovado, mas falha ao obter links de download.");
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!id) return;
-
-    if (initData?.status === "approved") {
-      fetchDownloadLinks(id);
-      return;
-    }
-
-    fetchStatus();
-
-    const interval = setInterval(fetchStatus, 5000);
-    return () => clearInterval(interval);
-  }, [id, initData?.status, fetchStatus, fetchDownloadLinks]);
-
-  const copyPixCode = () => {
-    const text = pixCode || "";
-    if (!text) return;
-    navigator.clipboard
-      .writeText(text)
-      .then(() => alert("Código Pix copiado!"))
-      .catch(() => alert("Não foi possível copiar o código Pix."));
   };
 
-  const missingQrBecauseNoState =
-    !qrCodeBase64 && status !== "approved" && !initData?.qr_code;
+  const copyPixCode = () => {
+    if (order?.qr_code) {
+      navigator.clipboard.writeText(order.qr_code);
+      alert("Código PIX copiado!");
+    }
+  };
+
+  const handleDownload = async (downloadToken: string, productName: string) => {
+    try {
+      const downloadRecord = downloads.find(
+        (d) => d.download_token === downloadToken
+      );
+      const currentCount = downloadRecord ? downloadRecord.download_count : 0;
+
+      const { error } = await supabase
+        .from("downloads")
+        .update({
+          download_count: currentCount + 1,
+        })
+        .eq("download_token", downloadToken);
+
+      if (error) throw error;
+
+      // Substitua por link real de download na sua API
+      alert(`Download iniciado: ${productName}`);
+
+      setDownloads((prev) =>
+        prev.map((d) =>
+          d.download_token === downloadToken
+            ? { ...d, download_count: d.download_count + 1 }
+            : d
+        )
+      );
+    } catch (error) {
+      console.error("Erro ao fazer download:", error);
+      alert("Erro ao fazer download");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Clock className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+          <p>Verificando status do pagamento...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!order) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center text-red-600">
+          <XCircle className="h-12 w-12 mx-auto mb-4" />
+          <p>Pedido não encontrado</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
-      <div className="bg-white rounded-xl shadow-lg p-6 max-w-md w-full text-center border">
-        <h1 className="text-2xl font-bold mb-4 text-gray-800">
-          Status do Pagamento
-        </h1>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-2xl mx-auto px-4">
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="text-center mb-6">
+            {order.status === "pending" && (
+              <>
+                <Clock className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
+                <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                  Aguardando Pagamento
+                </h1>
+                <p className="text-gray-600">
+                  Escaneie o QR Code ou copie o código PIX para finalizar o
+                  pagamento
+                </p>
+              </>
+            )}
 
-        {checking && (
-          <div className="flex flex-col items-center space-y-2">
-            <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-            <p className="text-sm text-gray-600">Verificando pagamento...</p>
+            {order.status === "approved" && (
+              <>
+                <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+                <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                  Pagamento Aprovado!
+                </h1>
+                <p className="text-gray-600">
+                  Seus downloads estão disponíveis abaixo
+                </p>
+              </>
+            )}
+
+            {order.status === "failed" && (
+              <>
+                <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+                <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                  Pagamento Recusado
+                </h1>
+                <p className="text-gray-600">
+                  Houve um problema com seu pagamento. Tente novamente.
+                </p>
+              </>
+            )}
           </div>
-        )}
 
-        {!checking && status !== "approved" && (qrCodeBase64 || pixCode) && (
-          <div className="space-y-3">
-            <p className="text-gray-700">
-              Seu pagamento está pendente. Escaneie o QR Code abaixo ou copie o
-              código Pix:
-            </p>
-            {qrCodeBase64 && (
-              <div className="bg-gray-50 p-4 rounded-lg">
+          {order.status === "pending" && (order.qr_code_base64 || qrCode) && (
+            <div className="border rounded-lg p-4 mb-6">
+              <div className="text-center mb-4">
                 <img
-                  src={`data:image/png;base64,${qrCodeBase64}`}
-                  alt="QR Code Pix"
-                  className="mx-auto w-64 h-64"
+                  src={`data:image/png;base64,${
+                    order.qr_code_base64 || qrCode
+                  }`}
+                  alt="QR Code PIX"
+                  className="mx-auto w-64 h-64 border rounded-lg"
                 />
               </div>
-            )}
-            {pixCode && (
-              <button
-                onClick={copyPixCode}
-                className="text-xs underline text-blue-600 hover:text-blue-700"
-                type="button"
-              >
-                Copiar código Pix
-              </button>
-            )}
-            <p className="text-xs text-gray-500">
-              Status atual:{" "}
-              <span className="capitalize font-semibold">{status}</span>
-            </p>
-          </div>
-        )}
 
-        {!checking && missingQrBecauseNoState && (
-          <div className="space-y-2">
-            <p className="text-gray-700">
-              Status do pagamento:{" "}
-              <strong className="capitalize text-blue-600">{status}</strong>
-            </p>
-            <p className="text-sm text-yellow-600">
-              QR Code indisponível (página recarregada?). Volte para o carrinho
-              e gere o Pix novamente.
-            </p>
-          </div>
-        )}
-
-        {downloadLinks && (
-          <div className="space-y-4 mt-4 text-left">
-            <p className="text-green-600 font-semibold">
-              ✅ Pagamento aprovado! Seus links de download:
-            </p>
-            <ul className="list-disc list-inside">
-              {downloadLinks.map((produto) => (
-                <li key={produto.id} className="mb-2">
-                  <strong>{produto.nome}</strong> (Quantidade:{" "}
-                  {produto.quantidade})
-                  <br />
-                  <a
-                    href={produto.link_download}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 underline hover:text-blue-800"
+              {order.qr_code && (
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="text"
+                    value={order.qr_code}
+                    readOnly
+                    className="flex-1 p-2 border rounded text-sm bg-gray-50"
+                  />
+                  <button
+                    onClick={copyPixCode}
+                    className="p-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                   >
-                    Baixar arquivo
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+                    <Copy className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
-        {error && (
-          <div className="mt-4 text-red-600 text-sm flex items-center justify-center gap-2">
-            <AlertTriangle className="w-4 h-4" />
-            {error}
+          {order.status === "approved" && downloads.length > 0 && (
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Seus Downloads
+              </h2>
+
+              {downloads.map((download) => (
+                <div
+                  key={download.id}
+                  className="border rounded-lg p-4 flex items-center justify-between"
+                >
+                  <div className="flex-1">
+                    <h3 className="font-medium text-gray-900">
+                      {download.product.name}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      Downloads restantes:{" "}
+                      {download.max_downloads - download.download_count}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Expira em:{" "}
+                      {download.expires_at
+                        ? new Date(download.expires_at).toLocaleDateString(
+                            "pt-BR"
+                          )
+                        : "Não informado"}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() =>
+                      handleDownload(
+                        download.download_token,
+                        download.product.name
+                      )
+                    }
+                    disabled={download.download_count >= download.max_downloads}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    <span>Download</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {order.status === "approved" && downloads.length === 0 && (
+            <p className="text-center text-gray-600 mt-6">
+              Nenhum download disponível para este pedido.
+            </p>
+          )}
+
+          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+            <h3 className="font-medium text-gray-900 mb-2">
+              Detalhes do Pedido
+            </h3>
+            <div className="text-sm text-gray-600 space-y-1">
+              <p>
+                <strong>ID do Pedido:</strong> {order.id}
+              </p>
+              <p>
+                <strong>E-mail:</strong>{" "}
+                {order.customer_email || "Não informado"}
+              </p>
+              <p>
+                <strong>Total:</strong>{" "}
+                {new Intl.NumberFormat("pt-BR", {
+                  style: "currency",
+                  currency: "BRL",
+                }).format(order.total_amount)}
+              </p>
+              <p>
+                <strong>Data:</strong>{" "}
+                {new Date(order.created_at).toLocaleString("pt-BR")}
+              </p>
+            </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
 };
 
 export default PaymentStatusPage;
-      
