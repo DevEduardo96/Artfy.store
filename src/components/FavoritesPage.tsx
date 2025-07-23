@@ -32,7 +32,7 @@ const FavoritesPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showFilters, setShowFilters] = useState(false);
 
-  // Categorias únicas, mais "Todos"
+  // Categorias únicas, mais "Todos" Testando
   const categories = useMemo(() => {
     const uniqueCategories = Array.from(
       new Set(favoritesState.items.map((item) => item.category))

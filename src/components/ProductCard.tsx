@@ -12,7 +12,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { dispatch } = useCart();
   const { isFavorite, toggleFavorite } = useFavorites();
 
-  // Verifica se o produto já está nos favoritos
+  // Verifica se o produto já está nos favorits
   const isProductFavorite = isFavorite(product.id);
 
   const addToCart = () => {
