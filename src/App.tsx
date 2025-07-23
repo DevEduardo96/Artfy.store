@@ -23,9 +23,7 @@ import { UserProvider } from "./context/UserContext";
 import { products } from "./data/products";
 import FavoritesPage from "./components/FavoritesPage";
 import SitesPage from "./pages/SitesPage";
-import ResetPassword from "./components/ResetPassword";
 import ProdutosPage from "./pages/ProductsPage";
-import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import AboutUs from "./pages/AboutUs";
 
@@ -95,7 +93,7 @@ function App() {
                   </>
                 }
               />
-              <Route path="/terms" element={<TermsOfService />} />
+
               <Route path="/sobre" element={<AboutUs />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/produtos" element={<ProdutosPage />} />
@@ -110,15 +108,6 @@ function App() {
                 path="/sites"
                 element={<SitesPage products={products} />}
               />
-              <Route
-                path="/reset-password"
-                element={
-                  <ResetPassword
-                    onFinish={() => (window.location.href = "/login")}
-                  />
-                }
-              />
-              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
             <Cart />
           </Router>
