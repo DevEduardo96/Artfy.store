@@ -1,6 +1,5 @@
 import React from "react";
 import { ArrowRight, Play, Star } from "lucide-react";
-import imgInicial from "../style/imgs/imageminicial.webp";
 import { useNavigate } from "react-router-dom";
 
 const Hero: React.FC = () => {
@@ -63,7 +62,7 @@ const Hero: React.FC = () => {
           <div className="relative w-full max-w-md mx-auto">
             <div className="relative z-10 w-full rounded-2xl overflow-hidden aspect-[3/2]">
               <img
-                src={imgInicial}
+                src="/imageminicial.webp"
                 alt="Aprendizado Online"
                 className="w-full h-full object-cover"
               />
