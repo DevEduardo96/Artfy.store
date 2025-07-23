@@ -35,8 +35,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   };
 
   return (
-
-    
     <div className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group cursor-pointer">
       <div className="relative">
         <img
@@ -60,9 +58,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             }`}
           />
         </button>
-        {product.discount && (
+        {product.originalPrice && (
           <div className="absolute top-3 left-3 bg-red-500 text-white px-2 py-1 rounded-md text-sm font-medium">
-            {product.discount}% OFF
+            {Math.round(
+              ((product.originalPrice - product.price) /
+                product.originalPrice) *
+                100
+            )}
+            % OFF
           </div>
         )}
       </div>

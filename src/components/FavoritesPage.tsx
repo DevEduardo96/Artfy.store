@@ -11,37 +11,49 @@ import {
   Trash2,
   Share2,
   Eye,
+  BookOpen,
+  Sparkles,
 } from "lucide-react";
-import { useFavorites } from "../context/FavoritesContext";
 import { Product } from "../types";
+import { useFavorites } from "../context/FavoritesContext";
 import { useCart } from "../context/CartContext";
 
 const FavoritesPage: React.FC = () => {
-  const { favorites, dispatch: favoritesDispatch, toggleFavorite } = useFavorites();
+  const {
+    state: favoritesState,
+    dispatch: favoritesDispatch,
+    toggleFavorite,
+  } = useFavorites();
   const { dispatch: cartDispatch } = useCart();
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("todos");
+  const [selectedCategory, setSelectedCategory] = useState("Todos");
   const [sortBy, setSortBy] = useState("recent");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showFilters, setShowFilters] = useState(false);
 
-  // Extrai categorias únicas (em minúsculo)
+  // Categorias únicas, mais "Todos"
   const categories = useMemo(() => {
-    const unique = Array.from(new Set(favorites.map((p) => p.category.toLowerCase())));
-    return ["todos", ...unique];
-  }, [favorites]);
+    const uniqueCategories = Array.from(
+      new Set(favoritesState.items.map((item) => item.category))
+    );
+    return ["Todos", ...uniqueCategories];
+  }, [favoritesState.items]);
 
-  // Filtra e ordena produtos favoritos
+  // Filtra e ordena favoritos sem mutação
   const filteredFavorites = useMemo(() => {
-    let filtered = favorites.filter((p) => {
+    let filtered = favoritesState.items.filter((item) => {
       const term = searchTerm.toLowerCase();
       const matchesSearch =
-        p.name.toLowerCase().includes(term) ||
-        (p.description?.toLowerCase() ?? "").includes(term);
-      const matchesCategory = selectedCategory === "todos" || p.category.toLowerCase() === selectedCategory;
+        item.name.toLowerCase().includes(term) ||
+        item.description.toLowerCase().includes(term);
+      const matchesCategory =
+        selectedCategory === "Todos" || item.category === selectedCategory;
       return matchesSearch && matchesCategory;
     });
+
+    // Copia array para não alterar original
+    filtered = [...filtered];
 
     switch (sortBy) {
       case "name":
@@ -56,15 +68,12 @@ const FavoritesPage: React.FC = () => {
       case "rating":
         filtered.sort((a, b) => b.rating - a.rating);
         break;
-      default:
-        filtered = filtered.reverse(); // recent
+      default: // recent
+        filtered.reverse();
     }
 
     return filtered;
-  }, [favorites, searchTerm, selectedCategory, sortBy]);
-
-  const formatPrice = (price: number) =>
-    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(price);
+  }, [favoritesState.items, searchTerm, selectedCategory, sortBy]);
 
   const addToCart = (product: Product) => {
     cartDispatch({ type: "ADD_ITEM", payload: product });
@@ -86,24 +95,30 @@ const FavoritesPage: React.FC = () => {
     if (navigator.share) {
       try {
         await navigator.share(shareData);
-      } catch {
-        // Silenciar erro
+      } catch (error) {
+        // Usuário pode cancelar o share
+        console.log("Compartilhamento cancelado ou falhou:", error);
       }
     } else {
       try {
         await navigator.clipboard.writeText(window.location.href);
         alert("Link copiado para a área de transferência!");
       } catch {
-        alert("Não foi possível copiar o link.");
+        alert("Não foi possível copiar o link. Por favor, copie manualmente.");
       }
     }
   };
 
-  // Card para visualização grid ou list
-  const FavoriteCard: React.FC<{ product: Product; viewMode: "grid" | "list" }> = ({
-    product,
-    viewMode,
-  }) => {
+  const formatPrice = (price: number) =>
+    new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(price);
+
+  const FavoriteCard: React.FC<{
+    product: Product;
+    viewMode: "grid" | "list";
+  }> = ({ product, viewMode }) => {
     if (viewMode === "list") {
       return (
         <article className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 p-6">
@@ -116,18 +131,28 @@ const FavoritesPage: React.FC = () => {
             <div className="flex-1 flex flex-col justify-between">
               <header className="flex items-start justify-between mb-2">
                 <div>
-                  <span className="text-sm text-blue-600 font-medium">{product.category}</span>
-                  <h3 className="text-xl font-semibold text-gray-800 mb-2">{product.name}</h3>
+                  <span className="text-sm text-blue-600 font-medium">
+                    {product.category}
+                  </span>
+                  <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                    {product.name}
+                  </h3>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold text-gray-800">{formatPrice(product.price)}</p>
+                  <p className="text-2xl font-bold text-gray-800">
+                    {formatPrice(product.price)}
+                  </p>
                   {product.originalPrice && (
-                    <p className="text-sm text-gray-500 line-through">{formatPrice(product.originalPrice)}</p>
+                    <p className="text-sm text-gray-500 line-through">
+                      {formatPrice(product.originalPrice)}
+                    </p>
                   )}
                 </div>
               </header>
 
-              <p className="text-gray-600 mb-4 line-clamp-2">{product.description}</p>
+              <p className="text-gray-600 mb-4 line-clamp-2">
+                {product.description}
+              </p>
 
               <footer className="flex items-center justify-between">
                 <div className="flex items-center space-x-4 text-sm text-gray-500">
@@ -210,7 +235,9 @@ const FavoritesPage: React.FC = () => {
           {product.originalPrice && (
             <div className="absolute top-3 left-3 bg-red-500 text-white px-2 py-1 rounded-md text-sm font-medium">
               {Math.round(
-                ((product.originalPrice - product.price) / product.originalPrice) * 100
+                ((product.originalPrice - product.price) /
+                  product.originalPrice) *
+                  100
               )}
               % OFF
             </div>
@@ -219,16 +246,22 @@ const FavoritesPage: React.FC = () => {
 
         <div className="p-5">
           <header className="flex items-center justify-between mb-2">
-            <span className="text-sm text-blue-600 font-medium">{product.category}</span>
+            <span className="text-sm text-blue-600 font-medium">
+              {product.category}
+            </span>
             <div className="flex items-center space-x-1">
               <Star className="h-4 w-4 text-yellow-400 fill-current" />
               <span className="text-sm text-gray-600">{product.rating}</span>
             </div>
           </header>
 
-          <h3 className="text-lg font-semibold text-gray-800 mb-2 line-clamp-2">{product.name}</h3>
+          <h3 className="text-lg font-semibold text-gray-800 mb-2 line-clamp-2">
+            {product.name}
+          </h3>
 
-          <p className="text-gray-600 text-sm mb-3 line-clamp-2">{product.description}</p>
+          <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+            {product.description}
+          </p>
 
           <div className="flex items-center justify-between mb-4 text-sm text-gray-500">
             <div className="flex items-center space-x-2">
@@ -241,7 +274,9 @@ const FavoritesPage: React.FC = () => {
 
           <footer className="flex items-center justify-between">
             <div className="flex flex-col">
-              <span className="text-xl font-bold text-gray-800">{formatPrice(product.price)}</span>
+              <span className="text-xl font-bold text-gray-800">
+                {formatPrice(product.price)}
+              </span>
               {product.originalPrice && (
                 <span className="text-sm text-gray-500 line-through">
                   {formatPrice(product.originalPrice)}
@@ -280,7 +315,9 @@ const FavoritesPage: React.FC = () => {
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
             <div className="text-center">
-              <p className="text-3xl font-bold mb-1">{favorites.length}</p>
+              <p className="text-3xl font-bold mb-1">
+                {favoritesState.items.length}
+              </p>
               <p className="text-sm opacity-80">Favoritos</p>
             </div>
             <div className="text-center">
@@ -289,11 +326,16 @@ const FavoritesPage: React.FC = () => {
             </div>
             <div className="text-center">
               <p className="text-3xl font-bold mb-1">
-                {favorites.reduce((total, item) =>
-                  total +
-                  (item.originalPrice
-                    ? Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)
-                    : 0),
+                {favoritesState.items.reduce(
+                  (total, item) =>
+                    total +
+                    (item.originalPrice
+                      ? Math.round(
+                          ((item.originalPrice - item.price) /
+                            item.originalPrice) *
+                            100
+                        )
+                      : 0),
                   0
                 )}
                 %
@@ -303,7 +345,10 @@ const FavoritesPage: React.FC = () => {
             <div className="text-center">
               <p className="text-3xl font-bold mb-1">
                 {formatPrice(
-                  favorites.reduce((total, item) => total + item.price, 0)
+                  favoritesState.items.reduce(
+                    (total, item) => total + item.price,
+                    0
+                  )
                 )}
               </p>
               <p className="text-sm opacity-80">Valor Total</p>
@@ -312,7 +357,6 @@ const FavoritesPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Main Content */}
       <section className="container mx-auto px-4 py-8">
         {/* Search and Filters */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
@@ -370,7 +414,7 @@ const FavoritesPage: React.FC = () => {
                 </button>
               </div>
 
-              {favorites.length > 0 && (
+              {favoritesState.items.length > 0 && (
                 <button
                   onClick={clearAllFavorites}
                   className="flex items-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
@@ -385,7 +429,10 @@ const FavoritesPage: React.FC = () => {
 
           {/* Expanded Filters */}
           {showFilters && (
-            <div id="filters-section" className="mt-6 pt-6 border-t border-gray-200">
+            <div
+              id="filters-section"
+              className="mt-6 pt-6 border-t border-gray-200"
+            >
               <div className="grid md:grid-cols-2 gap-6">
                 {/* Category Filter */}
                 <div>
@@ -403,7 +450,7 @@ const FavoritesPage: React.FC = () => {
                   >
                     {categories.map((category) => (
                       <option key={category} value={category}>
-                        {category.charAt(0).toUpperCase() + category.slice(1)}
+                        {category}
                       </option>
                     ))}
                   </select>
@@ -439,33 +486,133 @@ const FavoritesPage: React.FC = () => {
         <header className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-2xl font-bold text-gray-800">
-              {filteredFavorites.length} {filteredFavorites.length === 1 ? "resultado" : "resultados"}
+              {filteredFavorites.length}{" "}
+              {filteredFavorites.length === 1 ? "Favorito" : "Favoritos"}
             </h2>
-            <p className="text-gray-600 text-sm">
-              Pesquisa por: <span className="font-medium">{searchTerm || "Todos os itens"}</span>
-            </p>
+            {searchTerm && (
+              <p className="text-gray-600" aria-live="polite">
+                Resultados para "{searchTerm}"
+              </p>
+            )}
           </div>
         </header>
 
-        {/* Product List */}
-        {filteredFavorites.length === 0 ? (
-          <p className="text-center text-gray-500">Nenhum favorito encontrado para sua busca.</p>
-        ) : viewMode === "list" ? (
-          <ul className="flex flex-col gap-6">
+        {/* Favorites Grid/List */}
+        {filteredFavorites.length > 0 ? (
+          <section
+            aria-live="polite"
+            className={
+              viewMode === "grid"
+                ? "grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                : "space-y-6"
+            }
+          >
             {filteredFavorites.map((product) => (
-              <li key={product.id}>
-                <FavoriteCard product={product} viewMode="list" />
-              </li>
+              <FavoriteCard
+                key={product.id}
+                product={product}
+                viewMode={viewMode}
+              />
             ))}
-          </ul>
+          </section>
+        ) : favoritesState.items.length === 0 ? (
+          <section className="text-center py-16" aria-live="polite">
+            <Heart className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-800 mb-2">
+              Nenhum favorito ainda
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Comece a adicionar produtos aos seus favoritos para vê-los aqui.
+            </p>
+            <button
+              onClick={() => window.history.back()}
+              className="bg-gradient-to-r from-red-500 to-pink-600 text-white px-6 py-3 rounded-lg hover:from-red-600 hover:to-pink-700 transition-all duration-300"
+              type="button"
+            >
+              Explorar Produtos
+            </button>
+          </section>
         ) : (
-          <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {filteredFavorites.map((product) => (
-              <li key={product.id}>
-                <FavoriteCard product={product} viewMode="grid" />
-              </li>
-            ))}
-          </ul>
+          <section className="text-center py-16" aria-live="polite">
+            <Search className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-800 mb-2">
+              Nenhum favorito encontrado
+            </h3>
+            <p className="text-gray-600">
+              Tente ajustar os filtros ou buscar por outros termos.
+            </p>
+          </section>
+        )}
+
+        {/* Quick Actions */}
+        {filteredFavorites.length > 0 && (
+          <section className="mt-16" aria-label="Ações rápidas">
+            <div className="bg-gradient-to-r from-red-50 to-pink-50 rounded-xl p-8">
+              <div className="text-center mb-6">
+                <Sparkles className="h-12 w-12 text-red-600 mx-auto mb-4" />
+                <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                  Ações Rápidas
+                </h2>
+                <p className="text-gray-600">
+                  Gerencie seus favoritos de forma eficiente
+                </p>
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-6">
+                <button
+                  onClick={() => {
+                    filteredFavorites.forEach((product) => addToCart(product));
+                  }}
+                  className="flex flex-col items-center p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
+                  type="button"
+                >
+                  <ShoppingCart className="h-8 w-8 text-blue-600 mb-3" />
+                  <h3 className="font-semibold text-gray-800 mb-1">
+                    Adicionar Todos ao Carrinho
+                  </h3>
+                  <p className="text-sm text-gray-600 text-center">
+                    Compre todos os favoritos de uma vez
+                  </p>
+                </button>
+
+                <button
+                  className="flex flex-col items-center p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
+                  type="button"
+                  onClick={() =>
+                    alert(
+                      "Funcionalidade de compartilhar lista não implementada ainda"
+                    )
+                  }
+                >
+                  <Share2 className="h-8 w-8 text-green-600 mb-3" />
+                  <h3 className="font-semibold text-gray-800 mb-1">
+                    Compartilhar Lista
+                  </h3>
+                  <p className="text-sm text-gray-600 text-center">
+                    Envie sua lista para amigos
+                  </p>
+                </button>
+
+                <button
+                  className="flex flex-col items-center p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
+                  type="button"
+                  onClick={() =>
+                    alert(
+                      "Funcionalidade de criar coleção não implementada ainda"
+                    )
+                  }
+                >
+                  <BookOpen className="h-8 w-8 text-purple-600 mb-3" />
+                  <h3 className="font-semibold text-gray-800 mb-1">
+                    Criar Coleção
+                  </h3>
+                  <p className="text-sm text-gray-600 text-center">
+                    Organize em coleções temáticas
+                  </p>
+                </button>
+              </div>
+            </div>
+          </section>
         )}
       </section>
     </main>

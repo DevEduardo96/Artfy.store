@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from "react";
-import { useEffect } from "react";
 import {
   Book,
   Search,
@@ -22,38 +21,19 @@ import {
 import { Product } from "../types";
 import { useCart } from "../context/CartContext";
 import Footer from "../components/Footer";
-import { fetchProducts } from "../data/products";
 
 interface EbooksPageProps {
-  products?: Product[];
+  products: Product[];
 }
 
-const EbooksPage: React.FC<EbooksPageProps> = ({ products: propProducts }) => {
+const EbooksPage: React.FC<EbooksPageProps> = ({ products }) => {
   const { dispatch } = useCart();
-  const [products, setProducts] = useState<Product[]>(propProducts || []);
-  const [loading, setLoading] = useState(!propProducts);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Todos");
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 500]);
   const [sortBy, setSortBy] = useState("popularity");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showFilters, setShowFilters] = useState(false);
-
-  useEffect(() => {
-    if (!propProducts) {
-      const loadProducts = async () => {
-        try {
-          const fetchedProducts = await fetchProducts();
-          setProducts(fetchedProducts);
-        } catch (error) {
-          console.error('Erro ao carregar produtos:', error);
-        } finally {
-          setLoading(false);
-        }
-      };
-      loadProducts();
-    }
-  }, [propProducts]);
 
   // Filtrar apenas e-books
   const ebooks = useMemo(() => {
@@ -468,25 +448,8 @@ const EbooksPage: React.FC<EbooksPageProps> = ({ products: propProducts }) => {
           </div>
         </div>
 
-        {/* Loading State */}
-        {loading ? (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="bg-white rounded-xl shadow-md overflow-hidden animate-pulse">
-                <div className="bg-gray-300 h-64 w-full"></div>
-                <div className="p-6">
-                  <div className="h-4 bg-gray-300 rounded w-1/4 mb-2"></div>
-                  <div className="h-6 bg-gray-300 rounded w-3/4 mb-3"></div>
-                  <div className="h-4 bg-gray-300 rounded w-full mb-3"></div>
-                  <div className="flex justify-between items-center">
-                    <div className="h-6 bg-gray-300 rounded w-20"></div>
-                    <div className="h-10 w-28 bg-gray-300 rounded-lg"></div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : filteredEbooks.length > 0 ? (
+        {/* Products Grid/List */}
+        {filteredEbooks.length > 0 ? (
           <div
             className={
               viewMode === "grid"
