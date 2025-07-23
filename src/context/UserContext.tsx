@@ -3,11 +3,10 @@
 import {
   createContext,
   useContext,
-  useEffect,
   useState,
   ReactNode,
+  useEffect,
 } from "react";
-import { supabase } from "../supabaseClient";
 
 interface UserContextType {
   user: any;
@@ -19,21 +18,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    const getSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      setUser(data.session?.user ?? null);
-    };
-    getSession();
-
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user ?? null);
-      }
-    );
-
-    return () => {
-      listener.subscription.unsubscribe();
-    };
+    // Se quiser simular um usuário localmente, você pode definir aqui
+    setUser(null); // ou algo como: setUser({ id: '123', name: 'Usuário Teste' })
   }, []);
 
   return (

@@ -4,15 +4,12 @@ import React, {
   createContext,
   useContext,
   useReducer,
-  useEffect,
   ReactNode,
   useCallback,
-  useState,
+  useEffect,
 } from "react";
 import { Product } from "../types";
-import { supabase } from "../supabaseClient";
 import { products } from "../data/products";
-import { useUser } from "./UserContext";
 
 interface FavoritesState {
   items: Product[];
@@ -66,46 +63,23 @@ export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({
     loading: false,
   });
 
-  const user = useUser();
-  const [isInitialized, setIsInitialized] = useState(true);
-  const [hasLoaded, setHasLoaded] = useState(false);
-
-  const loadFavorites = useCallback(async () => {
-    if (!user) return;
-
-    dispatch({ type: "SET_LOADING", payload: true });
-    console.log("Carregando favoritos para usuário:", user.id);
-
-    try {
-      const { data: favData, error: favError } = await supabase
-        .from("favorites")
-        .select("product_id")
-        .eq("user_id", user.id);
-
-      if (favError) {
-        console.error("Erro ao carregar favoritos:", favError);
-        return;
-      }
-
-      const productIds = favData?.map((f) => f.product_id) ?? [];
-      const favoriteProducts = products.filter((p) =>
-        productIds.includes(p.id)
-      );
-
-      dispatch({ type: "LOAD_FAVORITES", payload: favoriteProducts });
-    } catch (error) {
-      console.error("Erro ao carregar favoritos:", error);
-    } finally {
-      dispatch({ type: "SET_LOADING", payload: false });
-    }
-  }, [user]);
-
+  // Carrega favoritos do localStorage
   useEffect(() => {
-    if (user && isInitialized && !hasLoaded) {
-      loadFavorites();
-      setHasLoaded(true);
+    dispatch({ type: "SET_LOADING", payload: true });
+
+    const stored = localStorage.getItem("favorites");
+    if (stored) {
+      try {
+        const ids: string[] = JSON.parse(stored);
+        const favoriteProducts = products.filter((p) => ids.includes(p.id));
+        dispatch({ type: "LOAD_FAVORITES", payload: favoriteProducts });
+      } catch {
+        console.warn("Erro ao carregar favoritos locais.");
+      }
     }
-  }, [user, isInitialized, hasLoaded, loadFavorites]);
+
+    dispatch({ type: "SET_LOADING", payload: false });
+  }, []);
 
   const isFavorite = useCallback(
     (productId: string) => state.items.some((item) => item.id === productId),
@@ -113,38 +87,21 @@ export const FavoritesProvider: React.FC<{ children: ReactNode }> = ({
   );
 
   const toggleFavorite = useCallback(
-    async (product: Product) => {
-      if (!user) {
-        alert("Você precisa estar logado para adicionar favoritos.");
-        return;
+    (product: Product) => {
+      let updatedItems: Product[];
+
+      if (isFavorite(product.id)) {
+        updatedItems = state.items.filter((item) => item.id !== product.id);
+        dispatch({ type: "REMOVE_FAVORITE", payload: product.id });
+      } else {
+        updatedItems = [...state.items, product];
+        dispatch({ type: "ADD_FAVORITE", payload: product });
       }
 
-      try {
-        if (isFavorite(product.id)) {
-          const { error } = await supabase
-            .from("favorites")
-            .delete()
-            .eq("user_id", user.id)
-            .eq("product_id", product.id);
-
-          if (error) throw error;
-
-          dispatch({ type: "REMOVE_FAVORITE", payload: product.id });
-        } else {
-          const { error } = await supabase
-            .from("favorites")
-            .insert([{ user_id: user.id, product_id: product.id }]);
-
-          if (error && error.code !== "23505") throw error;
-
-          dispatch({ type: "ADD_FAVORITE", payload: product });
-        }
-      } catch (error) {
-        console.error("Erro ao alternar favorito:", error);
-        alert("Erro ao alterar favoritos. Tente novamente.");
-      }
+      const updatedIds = updatedItems.map((item) => item.id);
+      localStorage.setItem("favorites", JSON.stringify(updatedIds));
     },
-    [user, isFavorite]
+    [state.items, isFavorite]
   );
 
   const contextValue = {
