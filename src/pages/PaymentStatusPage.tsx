@@ -87,23 +87,31 @@ export default function PaymentStatusPage() {
             </ul>
           </div>
 
-          {/* ✅ Links de download */}
+          {/* Links de download exibidos por produto */}
           {paymentData.status === "approved" && downloadLinks.length > 0 && (
             <div className="mt-6">
               <h2 className="text-xl font-semibold mb-2">Downloads:</h2>
               <ul className="space-y-2">
-                {downloadLinks.map((url, index) => (
-                  <li key={index}>
-                    <a
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-block bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded transition"
-                    >
-                      Baixar Produto {index + 1}
-                    </a>
-                  </li>
-                ))}
+                {paymentData.products.map((prod, index) => {
+                  const url = downloadLinks[index];
+                  return (
+                    <li key={prod.id}>
+                      {prod.name} -{" "}
+                      {url ? (
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-block bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded transition"
+                        >
+                          Baixar
+                        </a>
+                      ) : (
+                        <span className="text-gray-500">Link indisponível</span>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}
