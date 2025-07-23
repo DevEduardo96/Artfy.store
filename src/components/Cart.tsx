@@ -1,4 +1,6 @@
+// Cart.tsx
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { X, Plus, Minus, Trash2, ShoppingBag, Copy } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { useUser } from "../context/UserContext";
@@ -9,19 +11,20 @@ import Swal from "sweetalert2";
 const Cart: React.FC = () => {
   const { state, dispatch } = useCart();
   const user = useUser();
+  const navigate = useNavigate(); // ✅ usado para redirecionar
 
-  const [email, setEmail] = useState("");
+  // ✅ Estados com tipagem explícita e ponto e vírgula
+  const [email, setEmail] = useState<string>("");
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [ticketUrl, setTicketUrl] = useState<string | null>(null);
   const [pixCode, setPixCode] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
 
-  // Preenche email com o email do usuário logado, se existir
   useEffect(() => {
     if (user?.email) {
       setEmail(user.email);
     } else {
-      setEmail(""); // Limpa email se não logado
+      setEmail("");
     }
   }, [user]);
 
@@ -89,10 +92,13 @@ const Cart: React.FC = () => {
 
       const data = await response.json();
 
-      if (data.qr_code_base64) {
+      if (data.qr_code_base64 && data.id) {
         setQrCode(data.qr_code_base64);
         setTicketUrl(data.ticket_url);
         setPixCode(data.qr_code);
+
+        // ✅ Redireciona para a página de status do pagamento
+        navigate(`/pagamento/${data.id}?qr=${data.qr_code_base64}`);
       } else {
         toast.error("Erro ao gerar QR Code.");
       }
@@ -205,8 +211,8 @@ const Cart: React.FC = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  disabled={!!user?.email} // bloqueia se usuário estiver logado
-                  required={!user?.email} // requer se não estiver logado
+                  disabled={!!user?.email}
+                  required={!user?.email}
                 />
                 <div className="mb-4 p-4 bg-yellow-100 border-l-4 border-yellow-400 text-yellow-800 text-sm rounded shadow-sm">
                   <strong className="block font-semibold mb-1">Atenção:</strong>
@@ -239,46 +245,6 @@ const Cart: React.FC = () => {
           )}
         </div>
       </div>
-
-      {qrCode && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
-          <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm text-center relative">
-            <button
-              className="absolute top-2 right-2 text-gray-500 hover:text-red-500"
-              onClick={() => setQrCode(null)}
-            >
-              <X className="h-5 w-5" />
-            </button>
-            <h2 className="text-lg font-bold mb-4 text-gray-800">
-              Escaneie para pagar com Pix
-            </h2>
-            <img
-              src={`data:image/png;base64,${qrCode}`}
-              alt="QR Code Pix"
-              className="mx-auto mb-4"
-            />
-            {ticketUrl && (
-              <a
-                href={ticketUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 underline text-sm mb-4 block"
-              >
-                Abrir no app do banco
-              </a>
-            )}
-
-            {pixCode && (
-              <button
-                onClick={copyPixCodeToClipboard}
-                className="flex items-center justify-center mx-auto bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-semibold transition"
-              >
-                <Copy className="mr-2 h-4 w-4" /> Copiar código Pix
-              </button>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 };

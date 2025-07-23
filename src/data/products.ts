@@ -41,6 +41,7 @@ export const products: Product[] = [
     description:
       "Template responsivo para dashboards administrativos com componentes modernos.",
     price: 89.9,
+    originalPrice: 129.9, // adicionado para manter padrão
     image:
       "https://images.pexels.com/photos/265087/pexels-photo-265087.jpeg?auto=compress&cs=tinysrgb&w=500",
     category: "Templates",
@@ -74,6 +75,7 @@ export const products: Product[] = [
     description:
       "Coleção com mais de 1000 ícones vetoriais em múltiplos formatos.",
     price: 39.9,
+    originalPrice: 69.9, // adicionado
     image:
       "https://images.pexels.com/photos/1779487/pexels-photo-1779487.jpeg?auto=compress&cs=tinysrgb&w=500",
     category: "Design",

@@ -1,273 +1,121 @@
-import React, { useEffect, useState } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
-import { CheckCircle, Clock, XCircle, Download, Copy } from "lucide-react";
-import { supabase } from "../lib/supabase";
-import { Order, Download as DownloadType, Product } from "../types";
+import { useParams } from "react-router-dom";
+import { usePaymentStatus } from "../hook/usePaymentStatus";
+import {
+  Loader2,
+  CheckCircle,
+  XCircle,
+  Clock,
+  AlertTriangle,
+} from "lucide-react";
 
-const PaymentStatusPage: React.FC = () => {
+export default function PaymentStatusPage() {
   const { paymentId } = useParams<{ paymentId: string }>();
-  const [searchParams] = useSearchParams();
-  const qrCode = searchParams.get("qr");
+  const { paymentData, downloadLinks, loading, error } = usePaymentStatus(
+    paymentId || null
+  );
 
-  const [order, setOrder] = useState<Order | null>(null);
-  const [downloads, setDownloads] = useState<
-    (DownloadType & { product: Product })[]
-  >([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (paymentId) {
-      fetchOrderStatus();
-      const interval = setInterval(fetchOrderStatus, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [paymentId]);
-
-  const fetchOrderStatus = async () => {
-    if (!paymentId) return;
-
-    try {
-      const { data: orderData, error: orderError } = await supabase
-        .from("orders")
-        .select("*")
-        .eq("mercadopago_payment_id", paymentId)
-        .single();
-
-      if (orderError) throw orderError;
-      setOrder(orderData);
-
-      if (orderData.status === "approved") {
-        const { data: downloadsData, error: downloadsError } = await supabase
-          .from("downloads")
-          .select(`*, product:products(*)`)
-          .eq("order_id", orderData.id);
-
-        if (downloadsError) throw downloadsError;
-        setDownloads(downloadsData || []);
-      }
-    } catch (error) {
-      console.error("Erro ao buscar status do pedido:", error);
-    } finally {
-      setLoading(false);
+  const getStatusInfo = () => {
+    switch (paymentData?.status) {
+      case "approved":
+        return {
+          label: "Aprovado",
+          color: "text-green-600",
+          Icon: CheckCircle,
+        };
+      case "rejected":
+        return { label: "Recusado", color: "text-red-600", Icon: XCircle };
+      case "expired":
+        return {
+          label: "Expirado",
+          color: "text-yellow-600",
+          Icon: AlertTriangle,
+        };
+      case "pending":
+      default:
+        return { label: "Pendente", color: "text-gray-500", Icon: Clock };
     }
   };
 
-  const copyPixCode = () => {
-    if (order?.qr_code) {
-      navigator.clipboard.writeText(order.qr_code);
-      alert("Código PIX copiado!");
-    }
-  };
-
-  const handleDownload = async (downloadToken: string, productName: string) => {
-    try {
-      const downloadRecord = downloads.find(
-        (d) => d.download_token === downloadToken
-      );
-      const currentCount = downloadRecord ? downloadRecord.download_count : 0;
-
-      const { error } = await supabase
-        .from("downloads")
-        .update({ download_count: currentCount + 1 })
-        .eq("download_token", downloadToken);
-
-      if (error) throw error;
-
-      alert(`Download iniciado: ${productName}`);
-
-      setDownloads((prev) =>
-        prev.map((d) =>
-          d.download_token === downloadToken
-            ? { ...d, download_count: d.download_count + 1 }
-            : d
-        )
-      );
-    } catch (error) {
-      console.error("Erro ao fazer download:", error);
-      alert("Erro ao fazer download");
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Clock className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
-          <p>Verificando status do pagamento...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!order) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center text-red-600">
-          <XCircle className="h-12 w-12 mx-auto mb-4" />
-          <p>Pedido não encontrado</p>
-        </div>
-      </div>
-    );
-  }
-
-  const isPending = order.status === "pending";
-  const isApproved = order.status === "approved";
-  const isFailed = order.status === "failed";
+  const { label, color, Icon } = getStatusInfo();
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-2xl mx-auto px-4">
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="text-center mb-6">
-            {isPending && (
-              <>
-                <Clock className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                  Aguardando Pagamento
-                </h1>
-                <p className="text-gray-600">
-                  Escaneie o QR Code ou copie o código PIX para finalizar o
-                  pagamento
-                </p>
-              </>
-            )}
+    <div className="max-w-3xl mx-auto py-10 px-4">
+      <h1 className="text-3xl font-bold mb-6 text-center">
+        Status do Pagamento
+      </h1>
 
-            {isApproved && (
-              <>
-                <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                  Pagamento Aprovado!
-                </h1>
-                <p className="text-gray-600">
-                  Seus downloads estão disponíveis abaixo
-                </p>
-              </>
-            )}
+      {loading && (
+        <div className="flex items-center justify-center gap-2 text-gray-600">
+          <Loader2 className="animate-spin" />
+          Verificando pagamento...
+        </div>
+      )}
 
-            {isFailed && (
-              <>
-                <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                  Pagamento Recusado
-                </h1>
-                <p className="text-gray-600">
-                  Houve um problema com seu pagamento. Tente novamente.
-                </p>
-              </>
-            )}
+      {error && (
+        <div className="text-red-500 text-center font-medium mt-4">{error}</div>
+      )}
+
+      {!loading && paymentData && (
+        <div className="border rounded-xl p-6 shadow-md bg-white">
+          <div className="flex items-center gap-2 mb-4">
+            <Icon className={color} />
+            <p className={`text-lg font-semibold ${color}`}>Status: {label}</p>
           </div>
 
-          {isPending && (order.qr_code_base64 || qrCode) && (
-            <div className="border rounded-lg p-4 mb-6">
-              <div className="text-center mb-4">
-                <img
-                  src={`data:image/png;base64,${
-                    order.qr_code_base64 || qrCode
-                  }`}
-                  alt="QR Code PIX"
-                  className="mx-auto w-64 h-64 border rounded-lg"
-                />
-              </div>
+          <p>
+            <strong>E-mail do cliente:</strong> {paymentData.customerEmail}
+          </p>
+          <p>
+            <strong>Valor pago:</strong> R${" "}
+            {(paymentData.total / 100).toFixed(2)}
+          </p>
+          <p>
+            <strong>Data da compra:</strong>{" "}
+            {new Date(paymentData.createdAt).toLocaleString("pt-BR")}
+          </p>
 
-              {order.qr_code && (
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="text"
-                    value={order.qr_code}
-                    readOnly
-                    className="flex-1 p-2 border rounded text-sm bg-gray-50"
-                  />
-                  <button
-                    onClick={copyPixCode}
-                    className="p-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                  >
-                    <Copy className="h-4 w-4" />
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {isApproved && downloads.length > 0 && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Seus Downloads
-              </h2>
-              {downloads.map((download) => (
-                <div
-                  key={download.id}
-                  className="border rounded-lg p-4 flex items-center justify-between"
-                >
-                  <div className="flex-1">
-                    <h3 className="font-medium text-gray-900">
-                      {download.product.name}
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      Downloads restantes:{" "}
-                      {download.max_downloads - download.download_count}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Expira em:{" "}
-                      {download.expires_at
-                        ? new Date(download.expires_at).toLocaleDateString(
-                            "pt-BR"
-                          )
-                        : "Não informado"}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() =>
-                      handleDownload(
-                        download.download_token,
-                        download.product.name
-                      )
-                    }
-                    disabled={download.download_count >= download.max_downloads}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                  >
-                    <Download className="h-4 w-4" />
-                    <span>Download</span>
-                  </button>
-                </div>
+          <div className="mt-6">
+            <h2 className="text-xl font-semibold mb-2">Produtos:</h2>
+            <ul className="list-disc ml-6 space-y-1">
+              {paymentData.products.map((prod) => (
+                <li key={prod.id}>
+                  {prod.name}
+                  {prod.format && ` (${prod.format})`}
+                  {prod.fileSize && ` - ${prod.fileSize}`}
+                </li>
               ))}
+            </ul>
+          </div>
+
+          {/* ✅ Links de download */}
+          {paymentData.status === "approved" && downloadLinks.length > 0 && (
+            <div className="mt-6">
+              <h2 className="text-xl font-semibold mb-2">Downloads:</h2>
+              <ul className="space-y-2">
+                {downloadLinks.map((url, index) => (
+                  <li key={index}>
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded transition"
+                    >
+                      Baixar Produto {index + 1}
+                    </a>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
 
-          {isApproved && downloads.length === 0 && (
-            <p className="text-center text-gray-600 mt-6">
-              Nenhum download disponível para este pedido.
+          {paymentData.status === "pending" && (
+            <p className="text-gray-500 mt-4">
+              Aguardando confirmação do pagamento. Esta página será atualizada
+              automaticamente.
             </p>
           )}
-
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <h3 className="font-medium text-gray-900 mb-2">
-              Detalhes do Pedido
-            </h3>
-            <div className="text-sm text-gray-600 space-y-1">
-              <p>
-                <strong>ID do Pedido:</strong> {order.id}
-              </p>
-              <p>
-                <strong>E-mail:</strong>{" "}
-                {order.customer_email || "Não informado"}
-              </p>
-              <p>
-                <strong>Total:</strong>{" "}
-                {new Intl.NumberFormat("pt-BR", {
-                  style: "currency",
-                  currency: "BRL",
-                }).format(order.total_amount)}
-              </p>
-              <p>
-                <strong>Data:</strong>{" "}
-                {new Date(order.created_at).toLocaleString("pt-BR")}
-              </p>
-            </div>
-          </div>
         </div>
-      </div>
+      )}
     </div>
   );
-};
-
-export default PaymentStatusPage;
+}
