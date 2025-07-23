@@ -7,7 +7,7 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-
+import PagamentoPage from "./pages/PaymentStatusPage";
 import Header from "./components/Header";
 import Hero from "./components/Hero";
 import SupportPage from "./components/SupportPage";
@@ -93,7 +93,7 @@ function App() {
                   </>
                 }
               />
-
+              <Route path="/pagamento/:id" element={<PagamentoPage />} />
               <Route path="/sobre" element={<AboutUs />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/produtos" element={<ProdutosPage />} />
