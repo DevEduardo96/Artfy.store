@@ -47,7 +47,7 @@ export const products: Product[] = [
     tags: ["Dashboard", "Admin", "Responsive"],
     rating: 4.7,
     reviews: 89,
-    fileSize: "125 MB",
+    fileSize: "155 MB",
     format: "HTML/CSS/JS",
     isDigital: true,
   },
