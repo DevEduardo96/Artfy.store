@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Search,
   ShoppingCart,
@@ -9,40 +9,22 @@ import {
   LogOut,
 } from "lucide-react";
 import { useCart } from "../context/CartContext";
-import { supabase } from "../supabaseClient";
 import { useNavigate } from "react-router-dom";
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [user, setUser] = useState<any>(null);
   const { state, dispatch } = useCart();
   const navigate = useNavigate();
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const openCart = () => dispatch({ type: "OPEN_CART" });
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-    };
-
-    fetchUser();
-
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user ?? null);
-      }
-    );
-
-    return () => listener.subscription.unsubscribe();
-  }, []);
+  // Até você ter login com seu backend, sempre será null:
+  const user = null;
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
+    // Adapte aqui para sua API futuramente
+    console.log("Logout");
     navigate("/");
   };
 
@@ -111,40 +93,12 @@ const Header: React.FC = () => {
               <Heart className="h-6 w-6" />
             </button>
 
-            {user ? (
-              <div className="relative group">
-                <button className="flex items-center space-x-2 p-2 text-gray-700 hover:text-blue-600 transition-colors rounded">
-                  {user.user_metadata?.avatar_url ? (
-                    <img
-                      src={user.user_metadata.avatar_url}
-                      alt="Avatar"
-                      className="w-6 h-6 rounded-full object-cover"
-                    />
-                  ) : (
-                    <User className="h-6 w-6" />
-                  )}
-                  <span className="hidden md:inline text-sm font-medium">
-                    {user.user_metadata?.full_name || user.email}
-                  </span>
-                </button>
-                <div className="absolute right-0 mt-2 w-36 bg-white border rounded shadow-md hidden group-hover:block z-50">
-                  <button
-                    onClick={handleLogout}
-                    className="w-full px-4 py-2 text-left text-red-600 hover:bg-gray-100 flex items-center space-x-2"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    <span>Sair</span>
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <button
-                onClick={() => navigate("/login")}
-                className="p-2 text-gray-700 hover:text-blue-600 transition-colors"
-              >
-                <User className="h-6 w-6" />
-              </button>
-            )}
+            <button
+              onClick={() => navigate("/login")}
+              className="p-2 text-gray-700 hover:text-blue-600 transition-colors"
+            >
+              <User className="h-6 w-6" />
+            </button>
 
             <button
               onClick={openCart}
@@ -235,30 +189,16 @@ const Header: React.FC = () => {
               >
                 Favoritos
               </button>
-
-              {user ? (
-                <button
-                  onClick={() => {
-                    handleLogout();
-                    setIsMenuOpen(false);
-                  }}
-                  className="text-left px-4 py-2 text-red-600 hover:bg-gray-100 rounded flex items-center gap-2"
-                >
-                  <LogOut className="h-4 w-4" />
-                  Sair
-                </button>
-              ) : (
-                <button
-                  onClick={() => {
-                    navigate("/login");
-                    setIsMenuOpen(false);
-                  }}
-                  className="text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded flex items-center gap-2"
-                >
-                  <User className="h-4 w-4" />
-                  Entrar
-                </button>
-              )}
+              <button
+                onClick={() => {
+                  navigate("/login");
+                  setIsMenuOpen(false);
+                }}
+                className="text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded flex items-center gap-2"
+              >
+                <User className="h-4 w-4" />
+                Entrar
+              </button>
             </nav>
           </div>
         )}

@@ -12,7 +12,6 @@ import {
   X,
   Loader2,
 } from "lucide-react";
-import { supabase } from "../supabaseClient";
 
 interface LoginPageProps {
   onClose?: () => void;
@@ -146,7 +145,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
     }
   }, [message]);
 
-  // LOGIN usando Supabase
+  // LOGIN simulado (sem Supabase)
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -158,34 +157,32 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
     setMessage(null);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: loginForm.email.trim().toLowerCase(),
-        password: loginForm.password,
-      });
+      // Simular delay de requisição
+      await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      if (error) {
-        // Mensagens de erro mais amigáveis
-        let errorMessage = "Erro ao fazer login";
-        if (error.message.includes("Invalid login credentials")) {
-          errorMessage = "Email ou senha incorretos";
-        } else if (error.message.includes("Email not confirmed")) {
-          errorMessage = "Confirme seu email antes de fazer login";
-        } else if (error.message.includes("Too many requests")) {
-          errorMessage = "Muitas tentativas. Tente novamente em alguns minutos";
-        }
-        setMessage({ type: "error", text: errorMessage });
+      // Simular verificação de credenciais
+      const isValidCredentials =
+        loginForm.email === "teste@email.com" &&
+        loginForm.password === "Teste123";
+
+      if (!isValidCredentials) {
+        setMessage({ type: "error", text: "Email ou senha incorretos" });
       } else {
         setMessage({ type: "success", text: "Login realizado com sucesso!" });
 
         // Reset do formulário
         setLoginForm({ email: "", password: "", rememberMe: false });
 
-        // Pequeno delay para garantir que a sessão foi processada
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        // Simular dados do usuário
+        const userData = {
+          id: "user-123",
+          email: loginForm.email,
+          name: "Usuário Teste",
+        };
 
         // Callback de sucesso
-        if (onSuccess && data.user) {
-          onSuccess(data.user);
+        if (onSuccess) {
+          onSuccess(userData);
         }
 
         // Fechar modal apenas se fornecido
@@ -203,7 +200,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
     }
   };
 
-  // REGISTRO usando Supabase
+  // REGISTRO simulado (sem Supabase)
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -215,25 +212,14 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
     setMessage(null);
 
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email: registerForm.email.trim().toLowerCase(),
-        password: registerForm.password,
-        options: {
-          data: {
-            full_name: registerForm.name.trim(),
-            newsletter: registerForm.newsletter,
-          },
-        },
-      });
+      // Simular delay de requisição
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      if (error) {
-        let errorMessage = "Erro ao criar conta";
-        if (error.message.includes("User already registered")) {
-          errorMessage = "Este email já está registrado";
-        } else if (error.message.includes("Password should be at least")) {
-          errorMessage = "Senha muito fraca";
-        }
-        setMessage({ type: "error", text: errorMessage });
+      // Simular verificação se email já existe
+      const emailExists = registerForm.email === "existente@email.com";
+
+      if (emailExists) {
+        setMessage({ type: "error", text: "Este email já está registrado" });
       } else {
         setMessage({
           type: "success",
@@ -269,7 +255,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
     }
   };
 
-  // RECUPERAÇÃO DE SENHA usando Supabase
+  // RECUPERAÇÃO DE SENHA simulada (sem Supabase)
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -288,33 +274,22 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
     setFormErrors({});
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(
-        forgotForm.email.trim().toLowerCase(),
-        {
-          redirectTo: `${window.location.origin}/reset-password`,
-        }
-      );
+      // Simular delay de requisição
+      await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      if (error) {
-        setMessage({
-          type: "error",
-          text: "Erro ao enviar email de recuperação",
-        });
-      } else {
-        setMessage({
-          type: "success",
-          text: "Email de recuperação enviado! Verifique sua caixa de entrada.",
-        });
+      setMessage({
+        type: "success",
+        text: "Email de recuperação enviado! Verifique sua caixa de entrada.",
+      });
 
-        setForgotForm({ email: "" });
+      setForgotForm({ email: "" });
 
-        // Só mudar de aba se não for um modal
-        if (!onClose) {
-          setTimeout(() => {
-            setActiveTab("login");
-            setMessage(null);
-          }, 3000);
-        }
+      // Só mudar de aba se não for um modal
+      if (!onClose) {
+        setTimeout(() => {
+          setActiveTab("login");
+          setMessage(null);
+        }, 3000);
       }
     } catch (error) {
       console.error("Erro na recuperação:", error);
@@ -324,19 +299,38 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
     }
   };
 
-  // LOGIN SOCIAL - implementação básica
+  // LOGIN SOCIAL - implementação simulada
   const socialLogin = async (provider: "google" | "facebook" | "github") => {
     try {
       setIsLoading(true);
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: window.location.origin,
-        },
+      setMessage({ type: "info", text: `Conectando com ${provider}...` });
+
+      // Simular delay
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      setMessage({
+        type: "success",
+        text: `Login com ${provider} realizado com sucesso!`,
       });
 
-      if (error) {
-        setMessage({ type: "error", text: `Erro ao conectar com ${provider}` });
+      // Simular dados do usuário
+      const userData = {
+        id: `${provider}-user-123`,
+        email: `usuario@${provider}.com`,
+        name: `Usuário ${provider}`,
+        provider,
+      };
+
+      // Callback de sucesso
+      if (onSuccess) {
+        onSuccess(userData);
+      }
+
+      // Fechar modal apenas se fornecido
+      if (onClose) {
+        setTimeout(() => {
+          onClose();
+        }, 1000);
       }
     } catch (error) {
       console.error(`Erro no login ${provider}:`, error);
@@ -410,12 +404,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center space-x-2 mb-4">
-            <div className="w-10 h-10    rounded-lg flex items-center justify-center ">
-              <img
-                src="/logo02.webp"
-                alt="Nectix"
-                className="w-8 h-8 object-contain"
-              />
+            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-xl">N</span>
             </div>
             <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Nectix
@@ -483,6 +473,14 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
                 <span className="text-sm">{message.text}</span>
               </div>
             )}
+
+            {/* Demo Info */}
+            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-xs text-yellow-700">
+                <strong>Demo:</strong> Para testar o login, use: teste@email.com
+                / Teste123
+              </p>
+            </div>
 
             {/* Login Form */}
             {activeTab === "login" && (
