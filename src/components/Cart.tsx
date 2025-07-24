@@ -1,5 +1,5 @@
-// Cart.tsx
-import React, { useState, useEffect } from "react";
+// Cart.tsx - VERSÃO CORRIGIDA
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { X, Plus, Minus, Trash2, ShoppingBag } from "lucide-react";
 import { useCart } from "../context/CartContext";
@@ -29,41 +29,139 @@ const Cart: React.FC = () => {
     }
   }, [user]);
 
+  // ✅ CORRIGIDO: Melhor controle do polling de status
+  const checkPaymentStatusPoll = useCallback(async (id: string) => {
+    try {
+      console.log(`🔍 Verificando status do pagamento: ${id}`);
+
+      const res = await fetch(
+        `https://servidor-loja-digital.onrender.com/status-pagamento/${id}`
+      );
+
+      if (!res.ok) {
+        console.error(`❌ Erro HTTP ${res.status}`);
+        return null;
+      }
+
+      const statusData = await res.json();
+      console.log(`📊 Status recebido:`, statusData);
+
+      return statusData;
+    } catch (error) {
+      console.error("❌ Erro ao verificar status:", error);
+      return null;
+    }
+  }, []);
+
+  // ✅ CORRIGIDO: useEffect com cleanup adequado
   useEffect(() => {
     if (!paymentId) return;
 
+    console.log(`🚀 Iniciando polling para pagamento: ${paymentId}`);
     setCheckingStatus(true);
 
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch(
-          `https://servidor-loja-digital.onrender.com/status-pagamento/${paymentId}`
-        );
-        if (!res.ok) throw new Error("Erro ao consultar status");
+    let intervalId: NodeJS.Timeout;
+    let isActive = true; // Flag para evitar atualizações após unmount
 
-        const statusData = await res.json();
+    const startPolling = async () => {
+      // Primeira verificação imediata
+      const initialStatus = await checkPaymentStatusPoll(paymentId);
+
+      if (!isActive) return; // Componente foi desmontado
+
+      if (initialStatus?.status === "approved") {
+        setCheckingStatus(false);
+        Swal.fire({
+          icon: "success",
+          title: "Pagamento aprovado!",
+          text: "Redirecionando para a página de download...",
+          toast: true,
+          position: "top-end",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+        setTimeout(() => {
+          if (isActive) {
+            navigate(`/pagamento/${paymentId}`);
+          }
+        }, 2000);
+        return;
+      }
+
+      // Inicia polling se ainda está pendente
+      intervalId = setInterval(async () => {
+        if (!isActive) {
+          clearInterval(intervalId);
+          return;
+        }
+
+        const statusData = await checkPaymentStatusPoll(paymentId);
+
+        if (!statusData) return;
+
+        console.log(`📈 Status atual: ${statusData.status}`);
+
         if (statusData.status === "approved") {
-          clearInterval(interval);
+          clearInterval(intervalId);
           setCheckingStatus(false);
+
           Swal.fire({
             icon: "success",
             title: "Pagamento aprovado!",
+            text: "Redirecionando para a página de download...",
             toast: true,
             position: "top-end",
-            timer: 3000,
+            timer: 2000,
             showConfirmButton: false,
           });
-          navigate(`/pagamento/${paymentId}`);
+
+          setTimeout(() => {
+            if (isActive) {
+              navigate(`/pagamento/${paymentId}`);
+            }
+          }, 2000);
+        } else if (
+          statusData.status === "rejected" ||
+          statusData.status === "expired"
+        ) {
+          clearInterval(intervalId);
+          setCheckingStatus(false);
+
+          Swal.fire({
+            icon: "error",
+            title: "Pagamento não aprovado",
+            text: `Status: ${statusData.status}`,
+            toast: true,
+            position: "top-end",
+            timer: 5000,
+            showConfirmButton: false,
+          });
         }
-      } catch (error) {
-        console.error("Erro ao verificar status do pagamento:", error);
+      }, 3000); // 3 segundos
+    };
+
+    startPolling();
+
+    // Cleanup function
+    return () => {
+      console.log(`🧹 Limpando polling para: ${paymentId}`);
+      isActive = false;
+      if (intervalId) {
+        clearInterval(intervalId);
       }
-    }, 3000);
+      setCheckingStatus(false);
+    };
+  }, [paymentId, navigate, checkPaymentStatusPoll]);
 
-    return () => clearInterval(interval);
-  }, [paymentId, navigate]);
-
-  const closeCart = () => dispatch({ type: "CLOSE_CART" });
+  const closeCart = () => {
+    dispatch({ type: "CLOSE_CART" });
+    // ✅ Limpa estados ao fechar o carrinho
+    setQrCode(null);
+    setTicketUrl(null);
+    setPixCode(null);
+    setPaymentId(null);
+    setCheckingStatus(false);
+  };
 
   const updateQuantity = (id: string, quantity: number) => {
     if (quantity <= 0) {
@@ -88,6 +186,7 @@ const Cart: React.FC = () => {
     return /\S+@\S+\.\S+/.test(email);
   };
 
+  // ✅ CORRIGIDO: Melhor tratamento de erros
   const finalizePurchase = async () => {
     if (!validateEmail(email)) {
       Swal.fire({
@@ -105,8 +204,21 @@ const Cart: React.FC = () => {
       return;
     }
 
+    if (state.items.length === 0) {
+      toast.error("Carrinho está vazio!");
+      return;
+    }
+
     setLoading(true);
+
     try {
+      console.log("🛒 Enviando dados do carrinho:", {
+        carrinho: state.items,
+        nomeCliente: user?.email || email || "Cliente",
+        email,
+        total: state.total,
+      });
+
       const response = await fetch(
         "https://servidor-loja-digital.onrender.com/criar-pagamento",
         {
@@ -122,10 +234,12 @@ const Cart: React.FC = () => {
       );
 
       if (!response.ok) {
-        throw new Error("Erro na requisição");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
       }
 
       const data = await response.json();
+      console.log("✅ Resposta do servidor:", data);
 
       if (data.qr_code_base64 && data.id) {
         setQrCode(data.qr_code_base64);
@@ -133,13 +247,23 @@ const Cart: React.FC = () => {
         setPixCode(data.qr_code);
         setPaymentId(data.id);
 
-        // Não redirecionar aqui! Só quando status for aprovado.
+        toast.success("QR Code gerado com sucesso!");
+
+        // ✅ Log para debug
+        console.log(`💳 Pagamento criado: ${data.id}`);
+        console.log(`📊 Status inicial: ${data.status}`);
       } else {
-        toast.error("Erro ao gerar QR Code.");
+        throw new Error("Dados incompletos na resposta do servidor");
       }
     } catch (err) {
-      console.error(err);
-      toast.error("Erro ao finalizar compra.");
+      console.error("❌ Erro ao finalizar compra:", err);
+      toast.error(`Erro ao finalizar compra: ${err.message}`);
+
+      // ✅ Reset states em caso de erro
+      setQrCode(null);
+      setTicketUrl(null);
+      setPixCode(null);
+      setPaymentId(null);
     } finally {
       setLoading(false);
     }
@@ -163,7 +287,15 @@ const Cart: React.FC = () => {
 
       <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl flex flex-col">
         <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-semibold text-gray-800">Carrinho</h2>
+          <h2 className="text-lg font-semibold text-gray-800">
+            Carrinho
+            {/* ✅ Debug info (remover em produção) */}
+            {paymentId && (
+              <span className="text-xs text-gray-500 block">
+                ID: {paymentId.substring(0, 8)}...
+              </span>
+            )}
+          </h2>
           <button
             onClick={closeCart}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -203,6 +335,7 @@ const Cart: React.FC = () => {
                           updateQuantity(item.product.id, item.quantity - 1)
                         }
                         className="p-1 hover:bg-gray-200 rounded"
+                        disabled={loading || checkingStatus}
                       >
                         <Minus className="h-4 w-4" />
                       </button>
@@ -214,12 +347,14 @@ const Cart: React.FC = () => {
                           updateQuantity(item.product.id, item.quantity + 1)
                         }
                         className="p-1 hover:bg-gray-200 rounded"
+                        disabled={loading || checkingStatus}
                       >
                         <Plus className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => removeItem(item.product.id)}
                         className="p-1 hover:bg-red-100 rounded text-red-600"
+                        disabled={loading || checkingStatus}
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -246,48 +381,103 @@ const Cart: React.FC = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  disabled={!!user?.email}
+                  disabled={!!user?.email || loading || checkingStatus}
                   required={!user?.email}
                 />
+
+                {/* ✅ Status do pagamento visível */}
+                {paymentId && (
+                  <div className="mt-2 text-sm">
+                    {checkingStatus ? (
+                      <div className="flex items-center gap-2 text-blue-600">
+                        <div className="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                        Aguardando confirmação do pagamento...
+                      </div>
+                    ) : (
+                      <div className="text-green-600">
+                        ✅ QR Code gerado! Aguardando pagamento...
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className="mb-4 p-4 bg-yellow-100 border-l-4 border-yellow-400 text-yellow-800 text-sm rounded shadow-sm">
                   <strong className="block font-semibold mb-1">Atenção:</strong>
-                  Ao clicar em{" "}
-                  <span className="font-semibold">Finalizar Compra</span>, o QR
-                  Code pode levar alguns minutos para ser gerado.
-                  <br />
-                  Por favor, aguarde até que ele apareça.
+                  {!paymentId ? (
+                    <>
+                      Ao clicar em{" "}
+                      <span className="font-semibold">Finalizar Compra</span>, o
+                      QR Code pode levar alguns minutos para ser gerado.
+                      <br />
+                      Por favor, aguarde até que ele apareça.
+                    </>
+                  ) : (
+                    <>
+                      Após realizar o pagamento do PIX, você será redirecionado
+                      automaticamente para a página de download.
+                    </>
+                  )}
                 </div>
               </div>
 
+              {/* ✅ Botão com estados mais claros */}
               <button
                 onClick={finalizePurchase}
-                disabled={loading || checkingStatus}
-                className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-3 rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-300 disabled:opacity-50"
+                disabled={loading || checkingStatus || !!paymentId}
+                className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-3 rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading
                   ? "Gerando Pix..."
                   : checkingStatus
                   ? "Aguardando confirmação..."
+                  : paymentId
+                  ? "QR Code gerado ✓"
                   : "Finalizar Compra"}
               </button>
 
-              {/* Exibe QR Code após gerar */}
+              {/* ✅ QR Code com melhor feedback */}
               {qrCode && (
-                <div className="mt-6 text-center">
-                  <p className="mb-2 font-semibold">
-                    Escaneie o QR Code para pagar:
-                  </p>
-                  <img
-                    src={`data:image/png;base64,${qrCode}`}
-                    alt="QR Code Pix"
-                    className="mx-auto w-48 h-48"
-                  />
-                  <button
-                    onClick={copyPixCodeToClipboard}
-                    className="mt-2 px-4 py-2 bg-gray-200 rounded"
-                  >
-                    Copiar código Pix
-                  </button>
+                <div className="mt-6 text-center border-t pt-6">
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold mb-2">
+                      💳 Pagamento PIX
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Escaneie o QR Code abaixo ou copie o código PIX:
+                    </p>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-lg border-2 border-gray-200 inline-block">
+                    <img
+                      src={`data:image/png;base64,${qrCode}`}
+                      alt="QR Code Pix"
+                      className="w-48 h-48 mx-auto"
+                    />
+                  </div>
+
+                  <div className="mt-4 space-y-2">
+                    <button
+                      onClick={copyPixCodeToClipboard}
+                      className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                    >
+                      📋 Copiar código PIX
+                    </button>
+
+                    {ticketUrl && (
+                      <a
+                        href={ticketUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block w-full px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors text-center"
+                      >
+                        🔗 Abrir no Mercado Pago
+                      </a>
+                    )}
+                  </div>
+
+                  <div className="mt-4 text-xs text-gray-500">
+                    💡 Após o pagamento, você será redirecionado automaticamente
+                  </div>
                 </div>
               )}
             </>
