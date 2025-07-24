@@ -77,7 +77,7 @@ const Sites: React.FC = () => {
           <div className="text-center">
             <Globe className="w-16 h-16 mx-auto mb-6" />
             <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              Desenvolvimento de Sites
+              Desenvolvimento de sites e Apps
             </h1>
             <p className="text-xl text-blue-100 max-w-3xl mx-auto mb-8">
               Criamos sites modernos, responsivos e otimizados para converter
