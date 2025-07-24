@@ -48,7 +48,7 @@ export const usePaymentStatus = (paymentId: string | null) => {
     }
   }, [paymentId]);
 
-  // ✅ Consulta o status do pagamento
+  // ✅ Consulta o status do pagamento // comentario teste
   const checkPaymentStatus = useCallback(async () => {
     if (!paymentId) {
       setError("ID do pagamento não encontrado");
