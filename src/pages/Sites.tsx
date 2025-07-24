@@ -84,10 +84,14 @@ const Sites: React.FC = () => {
               visitantes em clientes. Sua presença digital profissional começa
               aqui.
             </p>
-            <button className="bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition-colors inline-flex items-center space-x-2">
-              <span>Solicitar Orçamento</span>
-              <ArrowRight className="w-5 h-5" />
-            </button>
+            <a
+             href="https://wa.me/558699461236?text=Olá%2C%20gostaria%20de%20solicitar%20um%20orçamento%20para%20a%20criação%20de%20um%20projeto."
+             target="_blank"
+             rel="noopener noreferrer"
+             className="bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition-colors inline-flex items-center space-x-2"
+             >
+             Solicitar Orçamento
+             </a>
           </div>
         </div>
       </div>
@@ -127,9 +131,15 @@ const Sites: React.FC = () => {
                 ))}
               </ul>
 
-              <button className="flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105">
-                Contratar Serviço
-              </button>
+              <a
+             href="https://wa.me/558699461236?text=Olá%2C%20gostaria%20de%20contratar%20o%20serviço!"
+             target="_blank"
+             rel="noopener noreferrer"
+             className="flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105"
+             >
+             Contratar Serviço
+             </a>
+
             </div>
           ))}
         </div>
@@ -222,9 +232,14 @@ const Sites: React.FC = () => {
           <p className="text-xl text-blue-100 mb-8">
             Entre em contato conosco e vamos criar algo incrível juntos
           </p>
-          <button className="bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
-            Falar com Especialista
-          </button>
+         
+          <a
+         href="https://wa.me/558699461236?text=Olá%2C%20gostaria%20de%20contratar%20o%20serviço%20"
+         target="_blank"
+         rel="noopener noreferrer"
+         className="bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+         Falar com Especialista
+         </a>
         </div>
       </div>
     </div>

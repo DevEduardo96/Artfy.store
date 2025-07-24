@@ -21,6 +21,7 @@ import Sobre from "./pages/Sobre";
 import Footer from "./components/Footer";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import { TermsOfService } from "./pages/TermsOfService";
+import { WhatsAppButton } from "./components/WhatsAppButton";
 
 
 
@@ -130,7 +131,9 @@ function AppContent() {
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/footer" element={<Footer />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
+          
         </Routes>
+        <WhatsAppButton />
       </main>
 
       <Cart
@@ -145,6 +148,7 @@ function AppContent() {
         }}
         total={getTotal()}
       />
+      
     </div>
   );
 }
@@ -154,6 +158,7 @@ function App() {
     <Router>
       <AppContent />
       <Footer />
+      
     </Router>
   );
 }
