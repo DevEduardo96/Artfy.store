@@ -1,4 +1,4 @@
-// usePaymentStatus.ts - VERSÃO CORRIGIDA
+// usePaymentStatus.ts - CORREÇÃO FINAL PARA PROBLEMA DO ID
 import { useState, useEffect, useCallback, useRef } from "react";
 
 interface PaymentStatus {
@@ -37,11 +37,37 @@ export const usePaymentStatus = (paymentId: string | null) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ useRef para controlar se o componente ainda está montado
   const isMountedRef = useRef(true);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const retryCountRef = useRef(0);
 
-  // ✅ Cleanup quando o componente é desmontado
+  // ✅ Funções utilitárias para strings seguras
+  const safeString = (value: any): string => {
+    if (typeof value === "string") return value;
+    if (value === null || value === undefined) return "";
+    if (typeof value === "number") return value.toString();
+    if (typeof value === "boolean") return value.toString();
+    if (typeof value === "object") {
+      try {
+        return JSON.stringify(value);
+      } catch {
+        return String(value);
+      }
+    }
+    return String(value);
+  };
+
+  const safeNumber = (value: any): number => {
+    if (typeof value === "number" && !isNaN(value)) return value;
+    if (typeof value === "string") {
+      const parsed = parseFloat(
+        value.replace(/[^\d.,-]/g, "").replace(",", ".")
+      );
+      return isNaN(parsed) ? 0 : parsed;
+    }
+    return 0;
+  };
+
   useEffect(() => {
     isMountedRef.current = true;
 
@@ -66,7 +92,9 @@ export const usePaymentStatus = (paymentId: string | null) => {
 
       try {
         const response = await fetch(
-          `https://servidor-loja-digital.onrender.com/link-download/${id}`,
+          `https://servidor-loja-digital.onrender.com/link-download/${encodeURIComponent(
+            id
+          )}`,
           {
             method: "GET",
             headers: { "Content-Type": "application/json" },
@@ -91,7 +119,7 @@ export const usePaymentStatus = (paymentId: string | null) => {
 
           const errorText = await response.text();
           console.log("❌ Erro na resposta de download:", errorText);
-          throw new Error(`Erro ${response.status}: ${errorText}`);
+          return []; // Não joga erro, só retorna array vazio
         }
 
         const data: DownloadResponse = await response.json();
@@ -106,7 +134,7 @@ export const usePaymentStatus = (paymentId: string | null) => {
         }
       } catch (err: any) {
         console.error("💥 Erro ao buscar links de download:", err);
-        throw err;
+        return []; // Retorna array vazio em caso de erro
       }
     },
     []
@@ -114,20 +142,30 @@ export const usePaymentStatus = (paymentId: string | null) => {
 
   // ✅ CORRIGIDO: Função para verificar status do pagamento
   const checkPaymentStatus = useCallback(
-    async (id: string): Promise<PaymentStatus | null> => {
+    async (
+      id: string,
+      isRetry: boolean = false
+    ): Promise<PaymentStatus | null> => {
       if (!id) {
         console.log("❌ ID do pagamento não fornecido");
         return null;
       }
 
-      console.log("🔄 Verificando status para paymentId:", id);
+      console.log(
+        `🔄 Verificando status para paymentId: ${id} (retry: ${isRetry})`
+      );
 
       try {
         const response = await fetch(
-          `https://servidor-loja-digital.onrender.com/status-pagamento/${id}`,
+          `https://servidor-loja-digital.onrender.com/status-pagamento/${encodeURIComponent(
+            id
+          )}`,
           {
             method: "GET",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              "Cache-Control": "no-cache",
+            },
           }
         );
 
@@ -135,8 +173,25 @@ export const usePaymentStatus = (paymentId: string | null) => {
 
         if (!response.ok) {
           if (response.status === 404) {
+            console.log("❌ Pagamento não encontrado no servidor");
+
+            // ✅ Se for primeira tentativa, tenta novamente após delay
+            if (!isRetry && retryCountRef.current < 3) {
+              retryCountRef.current++;
+              console.log(
+                `🔄 Tentativa ${retryCountRef.current}/3 após 2 segundos...`
+              );
+
+              await new Promise((resolve) => setTimeout(resolve, 2000));
+
+              if (isMountedRef.current) {
+                return await checkPaymentStatus(id, true);
+              }
+            }
+
             throw new Error("Pagamento não encontrado");
           }
+
           const errorText = await response.text();
           console.log("❌ Erro HTTP:", errorText);
           throw new Error(`HTTP ${response.status}: ${errorText}`);
@@ -152,19 +207,33 @@ export const usePaymentStatus = (paymentId: string | null) => {
 
         // ✅ Normaliza os dados para o formato esperado
         const normalizedData: PaymentStatus = {
-          status: data.status || "pending",
-          statusDetail: data.statusDetail,
-          paymentId: data.paymentId || id,
-          products: Array.isArray(data.products) ? data.products : [],
-          customerEmail: data.customerEmail || "N/A",
-          total: typeof data.total === "number" ? data.total : 0,
-          createdAt: data.createdAt || new Date().toISOString(),
-          updatedAt: data.updatedAt,
-          hasLinks: data.hasLinks || false,
-          linksCount: data.linksCount || 0,
+          status: (safeString(data.status) as any) || "pending",
+          statusDetail: safeString(data.statusDetail),
+          paymentId: safeString(data.paymentId || id),
+          products: Array.isArray(data.products)
+            ? data.products.map((p) => ({
+                id: safeString(p.id),
+                name: safeString(p.name),
+                downloadUrl: safeString(p.downloadUrl),
+                fileSize: safeString(p.fileSize),
+                format: safeString(p.format),
+                quantity: safeNumber(p.quantity) || 1,
+                price: safeNumber(p.price),
+              }))
+            : [],
+          customerEmail: safeString(data.customerEmail) || "N/A",
+          total: safeNumber(data.total),
+          createdAt: safeString(data.createdAt) || new Date().toISOString(),
+          updatedAt: safeString(data.updatedAt),
+          hasLinks: Boolean(data.hasLinks),
+          linksCount: safeNumber(data.linksCount),
         };
 
         console.log("✅ Dados normalizados:", normalizedData);
+
+        // Reset retry counter on success
+        retryCountRef.current = 0;
+
         return normalizedData;
       } catch (err: any) {
         console.error("💥 Erro ao verificar status:", err);
@@ -175,65 +244,76 @@ export const usePaymentStatus = (paymentId: string | null) => {
   );
 
   // ✅ CORRIGIDO: Função principal que combina status + links
-  const fetchPaymentData = useCallback(async () => {
-    if (!paymentId || !isMountedRef.current) return;
+  const fetchPaymentData = useCallback(
+    async (showLoading: boolean = true) => {
+      if (!paymentId || !isMountedRef.current) return;
 
-    try {
-      console.log("🚀 Buscando dados do pagamento:", paymentId);
+      if (showLoading) {
+        setLoading(true);
+      }
 
-      // 1. Busca o status do pagamento
-      const statusData = await checkPaymentStatus(paymentId);
+      try {
+        console.log("🚀 Buscando dados do pagamento:", paymentId);
 
-      if (!statusData || !isMountedRef.current) return;
+        // 1. Busca o status do pagamento
+        const statusData = await checkPaymentStatus(paymentId);
 
-      // 2. Atualiza o estado com os dados do status
-      setPaymentData(statusData);
-      setError(null);
+        if (!statusData || !isMountedRef.current) {
+          if (isMountedRef.current) {
+            setError("Pagamento não encontrado no servidor");
+            setPaymentData(null);
+            setDownloadLinks([]);
+          }
+          return;
+        }
 
-      // 3. Se aprovado, tenta buscar os links de download
-      if (statusData.status === "approved") {
-        console.log("✅ Pagamento aprovado! Tentando buscar links...");
+        // 2. Atualiza o estado com os dados do status
+        if (isMountedRef.current) {
+          setPaymentData(statusData);
+          setError(null);
+        }
 
-        try {
+        // 3. Se aprovado, tenta buscar os links de download
+        if (statusData.status === "approved") {
+          console.log("✅ Pagamento aprovado! Tentando buscar links...");
+
           const links = await fetchDownloadLinks(paymentId);
 
           if (isMountedRef.current) {
             setDownloadLinks(links);
             console.log(`🔗 ${links.length} links definidos no estado`);
           }
-        } catch (downloadError: any) {
-          console.warn(
-            "⚠️ Erro ao buscar links (não crítico):",
-            downloadError.message
-          );
-          // Não é um erro crítico, o pagamento pode estar aprovado mas os links ainda não disponíveis
+        } else {
+          // Se não aprovado, limpa os links
           if (isMountedRef.current) {
             setDownloadLinks([]);
           }
+          console.log(`⏳ Status: ${statusData.status} - aguardando aprovação`);
         }
-      } else {
-        // Se não aprovado, limpa os links
+      } catch (err: any) {
+        console.error("💥 Erro ao buscar dados do pagamento:", err);
+
         if (isMountedRef.current) {
+          const errorMessage =
+            safeString(err.message) || "Erro ao buscar dados do pagamento";
+          setError(errorMessage);
+
+          // ✅ Não limpa paymentData se já existe (evita piscar da interface)
+          if (!paymentData) {
+            setPaymentData(null);
+          }
           setDownloadLinks([]);
         }
-        console.log(`⏳ Status: ${statusData.status} - aguardando aprovação`);
+      } finally {
+        if (isMountedRef.current && showLoading) {
+          setLoading(false);
+        }
       }
-    } catch (err: any) {
-      console.error("💥 Erro ao buscar dados do pagamento:", err);
+    },
+    [paymentId, checkPaymentStatus, fetchDownloadLinks, paymentData]
+  );
 
-      if (isMountedRef.current) {
-        setError(err.message || "Erro ao buscar dados do pagamento");
-        setPaymentData(null);
-        setDownloadLinks([]);
-      }
-    } finally {
-      if (isMountedRef.current) {
-        setLoading(false);
-      }
-    }
-  }, [paymentId, checkPaymentStatus, fetchDownloadLinks]);
-
-  // ✅ CORRIGIDO: Effect principal com polling inteligente
+  // ✅ CORRIGIDO: Effect principal com retry inteligente
   useEffect(() => {
     if (!paymentId) {
       setError("ID do pagamento não encontrado");
@@ -244,11 +324,12 @@ export const usePaymentStatus = (paymentId: string | null) => {
     console.log("🚀 Iniciando monitoramento para:", paymentId);
     setLoading(true);
     setError(null);
+    retryCountRef.current = 0;
 
     // Primeira busca imediata
-    fetchPaymentData();
+    fetchPaymentData(true);
 
-    // ✅ Polling apenas se necessário
+    // ✅ Polling inteligente
     const startPolling = () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -270,7 +351,9 @@ export const usePaymentStatus = (paymentId: string | null) => {
 
           if (!statusData || !isMountedRef.current) return;
 
+          // Atualiza dados
           setPaymentData(statusData);
+          setError(null);
 
           // ✅ Para o polling se chegou a um status final
           if (
@@ -282,13 +365,9 @@ export const usePaymentStatus = (paymentId: string | null) => {
 
             // Se aprovado, busca os links uma última vez
             if (statusData.status === "approved") {
-              try {
-                const links = await fetchDownloadLinks(paymentId);
-                if (isMountedRef.current) {
-                  setDownloadLinks(links);
-                }
-              } catch (downloadError) {
-                console.warn("⚠️ Erro final ao buscar links:", downloadError);
+              const links = await fetchDownloadLinks(paymentId);
+              if (isMountedRef.current) {
+                setDownloadLinks(links);
               }
             }
 
@@ -301,15 +380,16 @@ export const usePaymentStatus = (paymentId: string | null) => {
         } catch (err: any) {
           console.error("💥 Erro no polling:", err);
 
-          if (isMountedRef.current) {
-            setError(err.message);
+          // ✅ Não sobrescreve erro se já tem dados válidos
+          if (isMountedRef.current && !paymentData) {
+            setError(safeString(err.message));
           }
         }
       }, 5000); // 5 segundos
     };
 
-    // Inicia o polling após um pequeno delay
-    const timeoutId = setTimeout(startPolling, 2000);
+    // Inicia o polling após 3 segundos (dá tempo para primeira busca)
+    const timeoutId = setTimeout(startPolling, 3000);
 
     // Cleanup
     return () => {
@@ -323,27 +403,15 @@ export const usePaymentStatus = (paymentId: string | null) => {
     };
   }, [paymentId, fetchPaymentData, checkPaymentStatus, fetchDownloadLinks]);
 
-  // ✅ Debug logs do estado atual
-  useEffect(() => {
-    if (process.env.NODE_ENV === "development") {
-      console.log("📊 Estado atual do hook:");
-      console.log("   - paymentId:", paymentId);
-      console.log("   - paymentData:", paymentData);
-      console.log("   - downloadLinks:", downloadLinks);
-      console.log("   - loading:", loading);
-      console.log("   - error:", error);
-    }
-  }, [paymentId, paymentData, downloadLinks, loading, error]);
-
-  // ✅ Função para forçar nova consulta (útil para retry)
+  // ✅ Função para forçar nova consulta
   const refetch = useCallback(async () => {
     if (!paymentId) return;
 
     console.log("🔄 Refetch solicitado para:", paymentId);
-    setLoading(true);
     setError(null);
+    retryCountRef.current = 0;
 
-    await fetchPaymentData();
+    await fetchPaymentData(true);
   }, [paymentId, fetchPaymentData]);
 
   return {
@@ -352,7 +420,7 @@ export const usePaymentStatus = (paymentId: string | null) => {
     loading,
     error,
     refetch,
-    // ✅ Estados adicionais úteis
+    // Estados adicionais úteis
     isApproved: paymentData?.status === "approved",
     isPending: paymentData?.status === "pending",
     isRejected: paymentData?.status === "rejected",
