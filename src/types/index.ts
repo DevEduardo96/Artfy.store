@@ -1,27 +1,11 @@
 export interface Product {
   id: string;
-<<<<<<< HEAD
-  name: string;
-  description: string;
-  price: number;
-  originalPrice?: number;
-  image: string;
-  category: string;
-  tags: string[];
-  rating: number;
-  reviews: number;
-  downloadUrl?: string;
-  fileSize?: string;
-  format?: string;
-  isDigital: boolean;
-=======
   nome: string;
   preco: number;
   linkDownload: string;
   description?: string;
   category?: string;
   image?: string;
->>>>>>> bd2f5bb (Primeiro commit do projeto Nectix.store)
 }
 
 export interface CartItem {
@@ -29,22 +13,6 @@ export interface CartItem {
   quantity: number;
 }
 
-<<<<<<< HEAD
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  avatar?: string;
-}
-
-export interface Order {
-  id: string;
-  userId: string;
-  items: CartItem[];
-  total: number;
-  status: 'pending' | 'completed' | 'cancelled';
-  createdAt: Date;
-=======
 export interface PaymentData {
   id: string;
   status: string;
@@ -89,5 +57,4 @@ export interface DownloadResponse {
   total: number;
   downloadedAt: string;
   expiresIn: string;
->>>>>>> bd2f5bb (Primeiro commit do projeto Nectix.store)
 }

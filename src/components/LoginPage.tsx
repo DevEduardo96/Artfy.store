@@ -64,7 +64,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSuccess }) => {
     return emailRegex.test(email);
   };
 
-  // Validação de senha forte
+  // Validação de senha forte //testando
   const isStrongPassword = (password: string): boolean => {
     return (
       password.length >= 8 &&
