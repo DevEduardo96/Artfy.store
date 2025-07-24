@@ -1,4 +1,4 @@
-// Cart.tsx - VERSÃO CORRIGIDA
+// Cart.tsx - CORREÇÃO DO ERRO SUBSTRING
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { X, Plus, Minus, Trash2, ShoppingBag } from "lucide-react";
@@ -29,13 +29,46 @@ const Cart: React.FC = () => {
     }
   }, [user]);
 
-  // ✅ CORRIGIDO: Melhor controle do polling de status
+  // ✅ CORRIGIDO: Função para validar se é string antes de usar substring
+  const safeSubstring = (value: any, start: number, end?: number): string => {
+    if (typeof value === "string") {
+      return end !== undefined
+        ? value.substring(start, end)
+        : value.substring(start);
+    }
+    if (value && typeof value === "object" && value.toString) {
+      const str = value.toString();
+      return end !== undefined
+        ? str.substring(start, end)
+        : str.substring(start);
+    }
+    return String(value || "").substring(start, end);
+  };
+
+  // ✅ CORRIGIDO: Função para converter valores para string segura
+  const safeString = (value: any): string => {
+    if (typeof value === "string") return value;
+    if (value === null || value === undefined) return "";
+    if (typeof value === "number") return value.toString();
+    if (typeof value === "boolean") return value.toString();
+    if (typeof value === "object") {
+      try {
+        return JSON.stringify(value);
+      } catch {
+        return String(value);
+      }
+    }
+    return String(value);
+  };
+
   const checkPaymentStatusPoll = useCallback(async (id: string) => {
     try {
-      console.log(`🔍 Verificando status do pagamento: ${id}`);
+      console.log(`🔍 Verificando status do pagamento: ${safeString(id)}`);
 
       const res = await fetch(
-        `https://servidor-loja-digital.onrender.com/status-pagamento/${id}`
+        `https://servidor-loja-digital.onrender.com/status-pagamento/${encodeURIComponent(
+          safeString(id)
+        )}`
       );
 
       if (!res.ok) {
@@ -46,6 +79,16 @@ const Cart: React.FC = () => {
       const statusData = await res.json();
       console.log(`📊 Status recebido:`, statusData);
 
+      // ✅ CORRIGIDO: Valida e converte dados para strings seguras
+      if (statusData && typeof statusData === "object") {
+        return {
+          ...statusData,
+          status: safeString(statusData.status),
+          paymentId: safeString(statusData.paymentId || id),
+          customerEmail: safeString(statusData.customerEmail),
+        };
+      }
+
       return statusData;
     } catch (error) {
       console.error("❌ Erro ao verificar status:", error);
@@ -53,21 +96,20 @@ const Cart: React.FC = () => {
     }
   }, []);
 
-  // ✅ CORRIGIDO: useEffect com cleanup adequado
   useEffect(() => {
     if (!paymentId) return;
 
-    console.log(`🚀 Iniciando polling para pagamento: ${paymentId}`);
+    const safePaymentId = safeString(paymentId);
+    console.log(`🚀 Iniciando polling para pagamento: ${safePaymentId}`);
     setCheckingStatus(true);
 
     let intervalId: NodeJS.Timeout;
-    let isActive = true; // Flag para evitar atualizações após unmount
+    let isActive = true;
 
     const startPolling = async () => {
-      // Primeira verificação imediata
-      const initialStatus = await checkPaymentStatusPoll(paymentId);
+      const initialStatus = await checkPaymentStatusPoll(safePaymentId);
 
-      if (!isActive) return; // Componente foi desmontado
+      if (!isActive) return;
 
       if (initialStatus?.status === "approved") {
         setCheckingStatus(false);
@@ -82,26 +124,26 @@ const Cart: React.FC = () => {
         });
         setTimeout(() => {
           if (isActive) {
-            navigate(`/pagamento/${paymentId}`);
+            navigate(`/pagamento/${encodeURIComponent(safePaymentId)}`);
           }
         }, 2000);
         return;
       }
 
-      // Inicia polling se ainda está pendente
       intervalId = setInterval(async () => {
         if (!isActive) {
           clearInterval(intervalId);
           return;
         }
 
-        const statusData = await checkPaymentStatusPoll(paymentId);
+        const statusData = await checkPaymentStatusPoll(safePaymentId);
 
         if (!statusData) return;
 
-        console.log(`📈 Status atual: ${statusData.status}`);
+        const statusString = safeString(statusData.status);
+        console.log(`📈 Status atual: ${statusString}`);
 
-        if (statusData.status === "approved") {
+        if (statusString === "approved") {
           clearInterval(intervalId);
           setCheckingStatus(false);
 
@@ -117,34 +159,30 @@ const Cart: React.FC = () => {
 
           setTimeout(() => {
             if (isActive) {
-              navigate(`/pagamento/${paymentId}`);
+              navigate(`/pagamento/${encodeURIComponent(safePaymentId)}`);
             }
           }, 2000);
-        } else if (
-          statusData.status === "rejected" ||
-          statusData.status === "expired"
-        ) {
+        } else if (statusString === "rejected" || statusString === "expired") {
           clearInterval(intervalId);
           setCheckingStatus(false);
 
           Swal.fire({
             icon: "error",
             title: "Pagamento não aprovado",
-            text: `Status: ${statusData.status}`,
+            text: `Status: ${statusString}`,
             toast: true,
             position: "top-end",
             timer: 5000,
             showConfirmButton: false,
           });
         }
-      }, 3000); // 3 segundos
+      }, 3000);
     };
 
     startPolling();
 
-    // Cleanup function
     return () => {
-      console.log(`🧹 Limpando polling para: ${paymentId}`);
+      console.log(`🧹 Limpando polling para: ${safePaymentId}`);
       isActive = false;
       if (intervalId) {
         clearInterval(intervalId);
@@ -155,7 +193,6 @@ const Cart: React.FC = () => {
 
   const closeCart = () => {
     dispatch({ type: "CLOSE_CART" });
-    // ✅ Limpa estados ao fechar o carrinho
     setQrCode(null);
     setTicketUrl(null);
     setPixCode(null);
@@ -176,19 +213,35 @@ const Cart: React.FC = () => {
   };
 
   const formatPrice = (price: number) => {
+    const numPrice =
+      typeof price === "number" ? price : parseFloat(safeString(price)) || 0;
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
       currency: "BRL",
-    }).format(price);
+    }).format(numPrice);
   };
 
   const validateEmail = (email: string) => {
-    return /\S+@\S+\.\S+/.test(email);
+    const emailString = safeString(email).trim();
+    return /\S+@\S+\.\S+/.test(emailString);
   };
 
-  // ✅ CORRIGIDO: Melhor tratamento de erros
+  // ✅ CORRIGIDO: Processa total de forma segura
+  const processTotal = (total: any): number => {
+    if (typeof total === "number") return total;
+    if (typeof total === "string") {
+      // Remove formatação de moeda brasileira
+      const cleanString = total.replace(/[R$\s\.]/g, "").replace(",", ".");
+      const parsed = parseFloat(cleanString);
+      return isNaN(parsed) ? 0 : parsed;
+    }
+    return 0;
+  };
+
   const finalizePurchase = async () => {
-    if (!validateEmail(email)) {
+    const emailString = safeString(email).trim();
+
+    if (!validateEmail(emailString)) {
       Swal.fire({
         icon: "warning",
         title: "🚫 E-mail inválido!",
@@ -204,7 +257,7 @@ const Cart: React.FC = () => {
       return;
     }
 
-    if (state.items.length === 0) {
+    if (!state.items || state.items.length === 0) {
       toast.error("Carrinho está vazio!");
       return;
     }
@@ -212,11 +265,33 @@ const Cart: React.FC = () => {
     setLoading(true);
 
     try {
-      console.log("🛒 Enviando dados do carrinho:", {
-        carrinho: state.items,
-        nomeCliente: user?.email || email || "Cliente",
-        email,
-        total: state.total,
+      // ✅ CORRIGIDO: Processa dados do carrinho de forma segura
+      const carrinhoSeguro = state.items.map((item) => ({
+        product: {
+          id: safeString(item.product.id),
+          name: safeString(item.product.name),
+          price:
+            typeof item.product.price === "number"
+              ? item.product.price
+              : parseFloat(safeString(item.product.price)) || 0,
+          image: safeString(item.product.image || ""),
+        },
+        quantity:
+          typeof item.quantity === "number"
+            ? item.quantity
+            : parseInt(safeString(item.quantity)) || 1,
+      }));
+
+      const nomeCliente = safeString(
+        user?.email || user?.name || emailString || "Cliente"
+      );
+      const totalSeguro = processTotal(state.total);
+
+      console.log("🛒 Enviando dados seguros do carrinho:", {
+        carrinho: carrinhoSeguro,
+        nomeCliente,
+        email: emailString,
+        total: totalSeguro,
       });
 
       const response = await fetch(
@@ -225,41 +300,50 @@ const Cart: React.FC = () => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            carrinho: state.items,
-            nomeCliente: user?.email || email || "Cliente",
-            email,
-            total: state.total,
+            carrinho: carrinhoSeguro,
+            nomeCliente,
+            email: emailString,
+            total: totalSeguro,
           }),
         }
       );
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP ${response.status}`);
+        throw new Error(
+          safeString(errorData.error) || `HTTP ${response.status}`
+        );
       }
 
       const data = await response.json();
       console.log("✅ Resposta do servidor:", data);
 
-      if (data.qr_code_base64 && data.id) {
-        setQrCode(data.qr_code_base64);
-        setTicketUrl(data.ticket_url);
-        setPixCode(data.qr_code);
-        setPaymentId(data.id);
+      // ✅ CORRIGIDO: Processa resposta de forma segura
+      const responseId = safeString(data.id);
+      const responseQrCode = safeString(data.qr_code_base64);
+      const responseTicketUrl = safeString(data.ticket_url);
+      const responsePixCode = safeString(data.qr_code);
+
+      if (responseQrCode && responseId) {
+        setQrCode(responseQrCode);
+        setTicketUrl(responseTicketUrl || null);
+        setPixCode(responsePixCode || null);
+        setPaymentId(responseId);
 
         toast.success("QR Code gerado com sucesso!");
 
-        // ✅ Log para debug
-        console.log(`💳 Pagamento criado: ${data.id}`);
-        console.log(`📊 Status inicial: ${data.status}`);
+        console.log(`💳 Pagamento criado: ${responseId}`);
+        console.log(`📊 Status inicial: ${safeString(data.status)}`);
       } else {
         throw new Error("Dados incompletos na resposta do servidor");
       }
-    } catch (err) {
-      console.error("❌ Erro ao finalizar compra:", err);
-      toast.error(`Erro ao finalizar compra: ${err.message}`);
+    } catch (err: any) {
+      const errorMessage = safeString(
+        err?.message || err || "Erro desconhecido"
+      );
+      console.error("❌ Erro ao finalizar compra:", errorMessage);
+      toast.error(`Erro ao finalizar compra: ${errorMessage}`);
 
-      // ✅ Reset states em caso de erro
       setQrCode(null);
       setTicketUrl(null);
       setPixCode(null);
@@ -270,8 +354,9 @@ const Cart: React.FC = () => {
   };
 
   const copyPixCodeToClipboard = () => {
-    if (pixCode) {
-      navigator.clipboard.writeText(pixCode);
+    const pixCodeString = safeString(pixCode);
+    if (pixCodeString) {
+      navigator.clipboard.writeText(pixCodeString);
       toast.success("Código Pix copiado para a área de transferência!");
     }
   };
@@ -289,10 +374,9 @@ const Cart: React.FC = () => {
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="text-lg font-semibold text-gray-800">
             Carrinho
-            {/* ✅ Debug info (remover em produção) */}
             {paymentId && (
               <span className="text-xs text-gray-500 block">
-                ID: {paymentId.substring(0, 8)}...
+                ID: {safeSubstring(safeString(paymentId), 0, 8)}...
               </span>
             )}
           </h2>
@@ -305,7 +389,7 @@ const Cart: React.FC = () => {
         </div>
 
         <div className="flex-1 overflow-y-auto p-4">
-          {state.items.length === 0 ? (
+          {!state.items || state.items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-gray-500">
               <ShoppingBag className="h-16 w-16 mb-4" />
               <p>Seu carrinho está vazio</p>
@@ -314,17 +398,21 @@ const Cart: React.FC = () => {
             <div className="space-y-4">
               {state.items.map((item) => (
                 <div
-                  key={item.product.id}
+                  key={safeString(item.product.id)}
                   className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg"
                 >
                   <img
-                    src={item.product.image}
-                    alt={item.product.name}
+                    src={safeString(item.product.image)}
+                    alt={safeString(item.product.name)}
                     className="w-16 h-16 object-cover rounded-lg"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src =
+                        "/placeholder-image.png";
+                    }}
                   />
                   <div className="flex-1">
                     <h3 className="font-medium text-gray-800 text-sm line-clamp-2">
-                      {item.product.name}
+                      {safeString(item.product.name)}
                     </h3>
                     <p className="text-blue-600 font-semibold">
                       {formatPrice(item.product.price)}
@@ -332,7 +420,10 @@ const Cart: React.FC = () => {
                     <div className="flex items-center space-x-2 mt-2">
                       <button
                         onClick={() =>
-                          updateQuantity(item.product.id, item.quantity - 1)
+                          updateQuantity(
+                            safeString(item.product.id),
+                            (item.quantity || 1) - 1
+                          )
                         }
                         className="p-1 hover:bg-gray-200 rounded"
                         disabled={loading || checkingStatus}
@@ -340,11 +431,14 @@ const Cart: React.FC = () => {
                         <Minus className="h-4 w-4" />
                       </button>
                       <span className="px-2 py-1 bg-white rounded text-sm">
-                        {item.quantity}
+                        {item.quantity || 1}
                       </span>
                       <button
                         onClick={() =>
-                          updateQuantity(item.product.id, item.quantity + 1)
+                          updateQuantity(
+                            safeString(item.product.id),
+                            (item.quantity || 1) + 1
+                          )
                         }
                         className="p-1 hover:bg-gray-200 rounded"
                         disabled={loading || checkingStatus}
@@ -352,7 +446,7 @@ const Cart: React.FC = () => {
                         <Plus className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => removeItem(item.product.id)}
+                        onClick={() => removeItem(safeString(item.product.id))}
                         className="p-1 hover:bg-red-100 rounded text-red-600"
                         disabled={loading || checkingStatus}
                       >
@@ -365,7 +459,7 @@ const Cart: React.FC = () => {
             </div>
           )}
 
-          {state.items.length > 0 && (
+          {state.items && state.items.length > 0 && (
             <>
               <div className="mt-6">
                 <label
@@ -378,14 +472,13 @@ const Cart: React.FC = () => {
                   id="email"
                   type="email"
                   placeholder="exemplo@dominio.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={safeString(email)}
+                  onChange={(e) => setEmail(safeString(e.target.value))}
                   className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   disabled={!!user?.email || loading || checkingStatus}
                   required={!user?.email}
                 />
 
-                {/* ✅ Status do pagamento visível */}
                 {paymentId && (
                   <div className="mt-2 text-sm">
                     {checkingStatus ? (
@@ -420,7 +513,6 @@ const Cart: React.FC = () => {
                 </div>
               </div>
 
-              {/* ✅ Botão com estados mais claros */}
               <button
                 onClick={finalizePurchase}
                 disabled={loading || checkingStatus || !!paymentId}
@@ -435,7 +527,6 @@ const Cart: React.FC = () => {
                   : "Finalizar Compra"}
               </button>
 
-              {/* ✅ QR Code com melhor feedback */}
               {qrCode && (
                 <div className="mt-6 text-center border-t pt-6">
                   <div className="mb-4">
@@ -449,9 +540,13 @@ const Cart: React.FC = () => {
 
                   <div className="bg-white p-4 rounded-lg border-2 border-gray-200 inline-block">
                     <img
-                      src={`data:image/png;base64,${qrCode}`}
+                      src={`data:image/png;base64,${safeString(qrCode)}`}
                       alt="QR Code Pix"
                       className="w-48 h-48 mx-auto"
+                      onError={(e) => {
+                        console.error("Erro ao carregar QR Code");
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
                     />
                   </div>
 
@@ -465,7 +560,7 @@ const Cart: React.FC = () => {
 
                     {ticketUrl && (
                       <a
-                        href={ticketUrl}
+                        href={safeString(ticketUrl)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="block w-full px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors text-center"
@@ -484,7 +579,7 @@ const Cart: React.FC = () => {
           )}
         </div>
 
-        {state.items.length > 0 && (
+        {state.items && state.items.length > 0 && (
           <div className="border-t p-4 space-y-4">
             <div className="flex justify-between items-center">
               <span className="text-lg font-semibold">Total:</span>
