@@ -104,7 +104,7 @@ const Sobre: React.FC = () => {
           </div>
           <div className="relative">
             <img
-              src="https://images.pexels.com/photos/3184360/pexels-photo-3184360.jpeg?auto=compress&cs=tinysrgb&w=600"
+              src={"/BannerEquipe.webp"}
               alt="Nossa equipe trabalhando"
               className="rounded-lg shadow-lg"
             />

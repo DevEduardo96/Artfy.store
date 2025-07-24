@@ -19,6 +19,11 @@ import Sites from "./pages/Sites";
 import Suporte from "./pages/Suporte";
 import Sobre from "./pages/Sobre";
 import Footer from "./components/Footer";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import { TermsOfService } from "./pages/TermsOfService";
+
+
+
 
 function AppContent() {
   const navigate = useNavigate();
@@ -122,7 +127,9 @@ function AppContent() {
           <Route path="/meu-site" element={<Sites />} />
           <Route path="/suporte" element={<Suporte />} />
           <Route path="/sobre" element={<Sobre />} />
+          <Route path="/terms" element={<TermsOfService />} />
           <Route path="/footer" element={<Footer />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
         </Routes>
       </main>
 
