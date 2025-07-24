@@ -78,27 +78,36 @@ export const usePaymentStatus = (paymentId: string | null) => {
       console.log("📡 Status response:", response.status);
 
       if (!response.ok) {
-        throw new Error("Erro ao verificar status do pagamento");
+        const errorText = await response.text();
+        console.log("❌ Erro HTTP:", errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
 
       const data = await response.json();
       console.log("📦 Dados do status recebidos:", data);
 
-      setPaymentData(data);
-      setError(null);
+      // ✅ CORREÇÃO: Verificar se os dados são válidos antes de definir
+      if (data && typeof data === "object" && data.status) {
+        console.log("✅ Dados válidos, definindo paymentData:", data);
+        setPaymentData(data);
+        setError(null);
 
-      // ✅ Se aprovado, buscar os links de download
-      if (data.status === "approved") {
-        console.log("✅ Pagamento aprovado! Buscando links...");
-        await fetchDownloadLinks();
+        // ✅ Se aprovado, buscar os links de download
+        if (data.status === "approved") {
+          console.log("✅ Pagamento aprovado! Buscando links...");
+          await fetchDownloadLinks();
+        } else {
+          console.log("⏳ Pagamento ainda pendente, status:", data.status);
+        }
       } else {
-        console.log("⏳ Pagamento ainda pendente, status:", data.status);
+        console.log("❌ Dados inválidos recebidos:", data);
+        setError("Dados inválidos recebidos do servidor");
       }
 
       return data;
     } catch (err) {
       console.error("💥 Erro ao verificar pagamento:", err);
-      setError("Erro ao verificar status do pagamento");
+      setError(`Erro ao verificar status: ${err.message}`);
       return null;
     } finally {
       setLoading(false);
