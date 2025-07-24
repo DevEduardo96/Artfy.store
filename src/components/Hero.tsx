@@ -62,7 +62,11 @@ const Hero: React.FC = () => {
           <div className="relative w-full max-w-md mx-auto">
             <div className="relative z-10 w-full rounded-2xl overflow-hidden aspect-[3/2]">
               <img
+<<<<<<< HEAD
                 src="/imageminicial.webp"
+=======
+                src="/BannerLogo.webp"
+>>>>>>> bd2f5bb (Primeiro commit do projeto Nectix.store)
                 alt="Aprendizado Online"
                 className="w-full h-full object-cover"
               />
