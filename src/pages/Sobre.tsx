@@ -213,9 +213,15 @@ const Sobre: React.FC = () => {
             Entre em contato e descubra como podemos ajudar seu projeto a
             decolar
           </p>
-          <button className="bg-white text-purple-600 px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+
+          <a
+            href="https://wa.me/558699461236?text=Olá%2C%20gostaria%20de%20contratar%20o%20serviço%20"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-white text-purple-600 px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+          >
             Falar Conosco
-          </button>
+          </a>
         </div>
       </div>
     </div>

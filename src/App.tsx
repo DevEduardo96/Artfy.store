@@ -13,7 +13,8 @@ import { PaymentStatus } from "./components/PaymentStatus";
 import { useCart } from "./hooks/useCart";
 import { useState } from "react";
 import { api } from "./services/api";
-import { PaymentData } from "./types";
+import { PaymentData, Product } from "./types"; // <- IMPORT atualizado
+import { ProductDetails } from "./pages/ProductDetails"; // <- NOVO IMPORT
 import { Home } from "lucide-react";
 import Sites from "./pages/Sites";
 import Suporte from "./pages/Suporte";
@@ -24,15 +25,16 @@ import { TermsOfService } from "./pages/TermsOfService";
 import { WhatsAppButton } from "./components/WhatsAppButton";
 import ScrollToTop from "./components/ScrollToTo";
 
-
-
-
 function AppContent() {
   const navigate = useNavigate();
 
   const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
+  // NOVOS ESTADOS
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [showProductDetails, setShowProductDetails] = useState(false);
 
   const {
     items,
@@ -65,6 +67,48 @@ function AppContent() {
     }
   };
 
+  // NOVA: Função para exibir detalhes do produto
+  const handleShowProductDetails = (product: Product) => {
+    setSelectedProduct(product);
+    setShowProductDetails(true);
+  };
+
+  // NOVA: Função para voltar dos detalhes
+  const handleBackFromDetails = () => {
+    setShowProductDetails(false);
+    setSelectedProduct(null);
+  };
+
+  // Se estiver mostrando detalhes do produto
+  if (showProductDetails && selectedProduct) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header
+          cartItemCount={getItemCount()}
+          onCartClick={() => setIsCartOpen(true)}
+        />
+        <ProductDetails
+          product={selectedProduct}
+          onBack={handleBackFromDetails}
+          onAddToCart={addToCart}
+        />
+        <Cart
+          items={items}
+          isOpen={isCartOpen}
+          onClose={() => setIsCartOpen(false)}
+          onUpdateQuantity={updateQuantity}
+          onRemoveItem={removeFromCart}
+          onCheckout={() => {
+            setIsCartOpen(false);
+            navigate("/checkout");
+          }}
+          total={getTotal()}
+        />
+        <WhatsAppButton />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header
@@ -73,29 +117,32 @@ function AppContent() {
       />
 
       <main className="pb-8">
-      <ScrollToTop />
+        <ScrollToTop />
         <Routes>
-        
           <Route
             path="/"
             element={
               <>
                 <Hero />
-
-                {
-                  <ProductGrid
-                    onAddToCart={addToCart}
-                    itemsPerPage={3}
-                    showPagination={false}
-                  />
-                }
+                <ProductGrid
+                  onAddToCart={addToCart}
+                  onShowDetails={handleShowProductDetails} // <- NOVA PROP
+                  itemsPerPage={3}
+                  showPagination={false}
+                />
               </>
             }
           />
 
           <Route
             path="/produtos"
-            element={<ProductGrid onAddToCart={addToCart} itemsPerPage={8} />}
+            element={
+              <ProductGrid
+                onAddToCart={addToCart}
+                onShowDetails={handleShowProductDetails} // <- NOVA PROP
+                itemsPerPage={8}
+              />
+            }
           />
 
           <Route
@@ -134,7 +181,6 @@ function AppContent() {
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/footer" element={<Footer />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
-          
         </Routes>
         <WhatsAppButton />
       </main>
@@ -151,7 +197,6 @@ function AppContent() {
         }}
         total={getTotal()}
       />
-      
     </div>
   );
 }
@@ -161,7 +206,6 @@ function App() {
     <Router>
       <AppContent />
       <Footer />
-      
     </Router>
   );
 }

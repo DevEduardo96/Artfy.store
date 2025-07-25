@@ -6,14 +6,16 @@ import { api } from "../services/api";
 
 interface ProductGridProps {
   onAddToCart: (product: Product) => void;
+  onShowDetails?: (product: Product) => void; // NOVA PROP OPCIONAL
   itemsPerPage?: number;
-  showPagination?: boolean; // <-- nova prop
+  showPagination?: boolean;
 }
 
 export const ProductGrid: React.FC<ProductGridProps> = ({
   onAddToCart,
+  onShowDetails, // NOVA PROP
   itemsPerPage = 6,
-  showPagination = true, // <-- valor padrão: true
+  showPagination = true,
 }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -125,6 +127,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                 key={product.id}
                 product={product}
                 onAddToCart={onAddToCart}
+                onShowDetails={onShowDetails} // <- NOVA PROP
               />
             ))}
           </div>

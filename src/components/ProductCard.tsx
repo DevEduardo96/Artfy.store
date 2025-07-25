@@ -1,16 +1,19 @@
 import React from "react";
-import { ShoppingCart, Download, Star } from "lucide-react";
+import { ShoppingCart, Download, Star, Eye } from "lucide-react"; // Adicione Eye
 import { Product } from "../types";
 
 interface ProductCardProps {
   product: Product;
   onAddToCart: (product: Product) => void;
+  onShowDetails?: (product: Product) => void; // NOVA PROP OPCIONAL
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
   product,
   onAddToCart,
+  onShowDetails, // NOVA PROP
 }) => {
+  // Todas as funções existentes permanecem iguais...
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -78,13 +81,28 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </div>
         </div>
 
-        <button
-          onClick={() => onAddToCart(product)}
-          className="flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105"
-        >
-          <ShoppingCart className="w-5 h-5" />
-          <span>Adicionar ao Carrinho</span>
-        </button>
+        {/* NOVA SEÇÃO: Botões */}
+        <div className="space-y-2">
+          {/* Botão Ver Detalhes (só aparece se a função foi passada) */}
+          {onShowDetails && (
+            <button
+              onClick={() => onShowDetails(product)}
+              className="flex items-center justify-center space-x-2 w-full bg-gray-100 text-gray-700 px-8 py-3 rounded-lg font-semibold hover:bg-gray-200 transition-all duration-300"
+            >
+              <Eye className="w-5 h-5" />
+              <span>Ver Detalhes</span>
+            </button>
+          )}
+
+          {/* Botão Adicionar ao Carrinho */}
+          <button
+            onClick={() => onAddToCart(product)}
+            className="flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 w-full"
+          >
+            <ShoppingCart className="w-5 h-5" />
+            <span>Adicionar ao Carrinho</span>
+          </button>
+        </div>
       </div>
     </div>
   );
