@@ -22,6 +22,7 @@ import Footer from "./components/Footer";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import { TermsOfService } from "./pages/TermsOfService";
 import { WhatsAppButton } from "./components/WhatsAppButton";
+import ScrollToTop from "./components/ScrollToTo";
 
 
 
@@ -72,7 +73,9 @@ function AppContent() {
       />
 
       <main className="pb-8">
+      <ScrollToTop />
         <Routes>
+        
           <Route
             path="/"
             element={
