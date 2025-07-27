@@ -4,8 +4,12 @@ import {
   Search,
   Menu as MenuIcon,
   X as CloseIcon,
+  Heart,
+  User,
+  LogOut,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
 interface HeaderProps {
   cartItemCount: number;
@@ -16,6 +20,7 @@ export const Header: React.FC<HeaderProps> = ({
   cartItemCount,
   onCartClick,
 }) => {
+  const { user, signOut } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -71,8 +76,20 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Carrinho + Menu Toggle */}
+          {/* User Actions */}
           <div className="flex items-center gap-4">
+            {/* Favorites - only for logged in users */}
+            {user && (
+              <Link
+                to="/favorites"
+                className="relative p-2 text-gray-600 hover:text-indigo-600 transition-colors"
+                title="Meus Favoritos"
+              >
+                <Heart className="w-6 h-6" />
+              </Link>
+            )}
+
+            {/* Cart */}
             <button
               onClick={onCartClick}
               className="relative p-2 text-gray-600 hover:text-indigo-600 transition-colors"
@@ -84,6 +101,37 @@ export const Header: React.FC<HeaderProps> = ({
                 </span>
               )}
             </button>
+
+            {/* User Menu */}
+            {user ? (
+              <div className="relative flex items-center gap-2">
+                <span className="hidden md:block text-sm text-gray-600">
+                  Olá, {user.email?.split('@')[0]}
+                </span>
+                <button
+                  onClick={() => signOut()}
+                  className="p-2 text-gray-600 hover:text-red-600 transition-colors"
+                  title="Sair"
+                >
+                  <LogOut className="w-5 h-5" />
+                </button>
+              </div>
+            ) : (
+              <div className="hidden md:flex items-center gap-2">
+                <Link
+                  to="/login"
+                  className="px-4 py-2 text-sm text-gray-600 hover:text-indigo-600 transition-colors"
+                >
+                  Entrar
+                </Link>
+                <Link
+                  to="/register"
+                  className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors"
+                >
+                  Criar conta
+                </Link>
+              </div>
+            )}
 
             {/* Botão de Menu Mobile */}
             <button
@@ -132,6 +180,45 @@ export const Header: React.FC<HeaderProps> = ({
             >
               Sobre
             </Link>
+            {user ? (
+              <>
+                <Link
+                  to="/favorites"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="py-3 hover:bg-gray-100 flex items-center justify-center gap-2"
+                >
+                  <Heart className="w-4 h-4" />
+                  Favoritos
+                </Link>
+                <button
+                  onClick={() => {
+                    signOut()
+                    setMobileMenuOpen(false)
+                  }}
+                  className="py-3 hover:bg-gray-100 flex items-center justify-center gap-2 text-red-600"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sair
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="py-3 hover:bg-gray-100"
+                >
+                  Entrar
+                </Link>
+                <Link
+                  to="/register"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="py-3 bg-indigo-600 text-white hover:bg-indigo-700"
+                >
+                  Criar conta
+                </Link>
+              </>
+            )}
           </nav>
         </div>
       )}

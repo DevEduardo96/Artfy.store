@@ -1,11 +1,17 @@
 export interface Product {
-  id: string;
-  nome: string;
-  preco: number;
-  linkDownload: string;
-  description?: string;
-  category?: string;
+  id: number;
+  name: string;
+  price: number | string;
+  image_url: string;
+  category: string;
+  description: string;
+  created_at?: string;
+  updated_at?: string;
+  // Legacy fields for backward compatibility
+  nome?: string;
+  preco?: number;
   image?: string;
+  linkDownload?: string;
 }
 
 export interface CartItem {

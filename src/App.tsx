@@ -7,23 +7,30 @@ import {
 import { Header } from "./components/Header";
 import { Cart } from "./components/Cart";
 import Hero from "./components/Hero";
-import { ProductGrid } from "./components/ProductGrid";
+import SupabaseProductGrid from "./components/SupabaseProductGrid";
+import { SupabaseProductDetail } from "./components/SupabaseProductDetail";
 import { CheckoutForm } from "./components/CheckoutForm";
 import { PaymentStatus } from "./components/PaymentStatus";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 import { useCart } from "./hooks/useCart";
 import { useState } from "react";
 import { api } from "./services/api";
-import { PaymentData, Product } from "./types"; // <- IMPORT atualizado
-import { ProductDetails } from "./pages/ProductDetails"; // <- NOVO IMPORT
-import { Home } from "lucide-react";
+import { PaymentData } from "./types";
+import type { Product } from "./lib/supabase";
+import { Login } from "./pages/Login";
+import { Register } from "./pages/Register";
+import { Favorites } from "./pages/Favorites";
 import Sites from "./pages/Sites";
 import Suporte from "./pages/Suporte";
 import Sobre from "./pages/Sobre";
+import { Toaster } from "react-hot-toast";
 import Footer from "./components/Footer";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import { TermsOfService } from "./pages/TermsOfService";
 import { WhatsAppButton } from "./components/WhatsAppButton";
 import ScrollToTop from "./components/ScrollToTo";
+import { AuthProvider } from "./contexts/AuthContext";
+import { FavoritesProvider } from "./contexts/FavoritesContext";
 
 function AppContent() {
   const navigate = useNavigate();
@@ -32,8 +39,10 @@ function AppContent() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
-  // NOVOS ESTADOS
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  // Product detail states
+  const [selectedProductId, setSelectedProductId] = useState<number | null>(
+    null
+  );
   const [showProductDetails, setShowProductDetails] = useState(false);
 
   const {
@@ -67,28 +76,27 @@ function AppContent() {
     }
   };
 
-  // NOVA: Função para exibir detalhes do produto
+  // Product detail functions
   const handleShowProductDetails = (product: Product) => {
-    setSelectedProduct(product);
+    setSelectedProductId(product.id);
     setShowProductDetails(true);
   };
 
-  // NOVA: Função para voltar dos detalhes
   const handleBackFromDetails = () => {
     setShowProductDetails(false);
-    setSelectedProduct(null);
+    setSelectedProductId(null);
   };
 
-  // Se estiver mostrando detalhes do produto
-  if (showProductDetails && selectedProduct) {
+  // Show product details if selected
+  if (showProductDetails && selectedProductId) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header
           cartItemCount={getItemCount()}
           onCartClick={() => setIsCartOpen(true)}
         />
-        <ProductDetails
-          product={selectedProduct}
+        <SupabaseProductDetail
+          productId={selectedProductId}
           onBack={handleBackFromDetails}
           onAddToCart={addToCart}
         />
@@ -124,12 +132,13 @@ function AppContent() {
             element={
               <>
                 <Hero />
-                <ProductGrid
-                  onAddToCart={addToCart}
-                  onShowDetails={handleShowProductDetails} // <- NOVA PROP
-                  itemsPerPage={3}
-                  showPagination={false}
-                />
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                  <SupabaseProductGrid
+                    onAddToCart={addToCart}
+                    onProductClick={handleShowProductDetails}
+                    showFilter={false}
+                  />
+                </div>
               </>
             }
           />
@@ -137,11 +146,27 @@ function AppContent() {
           <Route
             path="/produtos"
             element={
-              <ProductGrid
-                onAddToCart={addToCart}
-                onShowDetails={handleShowProductDetails} // <- NOVA PROP
-                itemsPerPage={8}
-              />
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <SupabaseProductGrid
+                  onAddToCart={addToCart}
+                  onProductClick={handleShowProductDetails}
+                />
+              </div>
+            }
+          />
+
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+
+          <Route
+            path="/favorites"
+            element={
+              <ProtectedRoute>
+                <Favorites
+                  onAddToCart={addToCart}
+                  onProductClick={handleShowProductDetails}
+                />
+              </ProtectedRoute>
             }
           />
 
@@ -174,7 +199,7 @@ function AppContent() {
               )
             }
           />
-          <Route path="/" element={<Home />} />
+
           <Route path="/meu-site" element={<Sites />} />
           <Route path="/suporte" element={<Suporte />} />
           <Route path="/sobre" element={<Sobre />} />
@@ -204,8 +229,22 @@ function AppContent() {
 function App() {
   return (
     <Router>
-      <AppContent />
-      <Footer />
+      <AuthProvider>
+        <FavoritesProvider>
+          <AppContent />
+          <Footer />
+          <Toaster
+            position="bottom-right"
+            toastOptions={{
+              duration: 3000,
+              style: {
+                background: "#363636",
+                color: "#fff",
+              },
+            }}
+          />
+        </FavoritesProvider>
+      </AuthProvider>
     </Router>
   );
 }
