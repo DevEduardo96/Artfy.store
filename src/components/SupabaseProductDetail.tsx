@@ -219,15 +219,11 @@ export const SupabaseProductDetail: React.FC<SupabaseProductDetailProps> = ({
                 </li>
                 <li className="flex items-center text-gray-600">
                   <CheckCircle className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" />
-                  Suporte técnico incluso
+                  Suporte técnico incluso, exceto para planilhas.
                 </li>
                 <li className="flex items-center text-gray-600">
                   <CheckCircle className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" />
                   Atualizações gratuitas
-                </li>
-                <li className="flex items-center text-gray-600">
-                  <CheckCircle className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" />
-                  Licença comercial inclusa
                 </li>
               </ul>
             </div>
