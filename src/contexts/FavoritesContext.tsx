@@ -52,8 +52,13 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     } catch (error) {
       console.error('Error loading favorites:', error)
       // Fallback to localStorage
-      const localFavorites = localStorage.getItem(`favorites_${user.id}`)
-      setFavorites(localFavorites ? JSON.parse(localFavorites) : [])
+      try {
+        const localFavorites = localStorage.getItem(`favorites_${user.id}`)
+        setFavorites(localFavorites ? JSON.parse(localFavorites) : [])
+      } catch (localError) {
+        console.error('Error parsing localStorage favorites:', localError)
+        setFavorites([])
+      }
     } finally {
       setLoading(false)
     }
@@ -61,7 +66,12 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const toggleFavorite = async (productId: number) => {
     if (!user) {
-      console.warn('User not authenticated, cannot toggle favorite')
+      toast.error('Você precisa estar logado para favoritar produtos')
+      return
+    }
+
+    if (!productId || isNaN(productId)) {
+      console.error('Invalid product ID:', productId)
       return
     }
 
@@ -69,11 +79,11 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     console.log(`Toggling favorite for product ${productId}, currently favorited: ${isFav}`)
 
     // Optimistically update UI first
-    if (isFav) {
-      setFavorites(prev => prev.filter(id => id !== productId))
-    } else {
-      setFavorites(prev => [...prev, productId])
-    }
+    const newFavorites = isFav 
+      ? favorites.filter(id => id !== productId)
+      : [...favorites, productId]
+    
+    setFavorites(newFavorites)
 
     try {
       if (isFav) {
@@ -88,7 +98,6 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           // If table doesn't exist, use localStorage fallback
           if (error.code === '42P01' || error.message?.includes('does not exist') || error.details?.includes('does not exist')) {
             console.log('Using localStorage fallback for removing favorite')
-            const newFavorites = favorites.filter(id => id !== productId)
             localStorage.setItem(`favorites_${user.id}`, JSON.stringify(newFavorites))
             toast.success('Removido dos favoritos')
             return
@@ -111,7 +120,6 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           // If table doesn't exist, use localStorage fallback
           if (error.code === '42P01' || error.message?.includes('does not exist') || error.details?.includes('does not exist')) {
             console.log('Using localStorage fallback for adding favorite')
-            const newFavorites = [...favorites, productId]
             localStorage.setItem(`favorites_${user.id}`, JSON.stringify(newFavorites))
             toast.success('Adicionado aos favoritos')
             return
@@ -124,38 +132,34 @@ export const FavoritesProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
 
       // Update localStorage as backup
-      const currentFavorites = isFav 
-        ? favorites.filter(id => id !== productId)
-        : [...favorites, productId]
-      localStorage.setItem(`favorites_${user.id}`, JSON.stringify(currentFavorites))
+      localStorage.setItem(`favorites_${user.id}`, JSON.stringify(newFavorites))
 
     } catch (error) {
       console.error('Error toggling favorite:', error)
       
       // Revert optimistic update on error
-      if (isFav) {
-        setFavorites(prev => [...prev, productId])
-      } else {
-        setFavorites(prev => prev.filter(id => id !== productId))
-      }
+      setFavorites(favorites)
       
       // Still save to localStorage as fallback
-      const newFavorites = isFav 
-        ? favorites.filter(id => id !== productId)
-        : [...favorites, productId]
-      localStorage.setItem(`favorites_${user.id}`, JSON.stringify(newFavorites))
-      console.log('Saved to localStorage as fallback')
-      
-      // Show appropriate toast message
-      if (isFav) {
-        toast.success('Removido dos favoritos')
-      } else {
-        toast.success('Adicionado aos favoritos')
+      try {
+        localStorage.setItem(`favorites_${user.id}`, JSON.stringify(newFavorites))
+        console.log('Saved to localStorage as fallback')
+        
+        // Show appropriate toast message
+        if (isFav) {
+          toast.success('Removido dos favoritos')
+        } else {
+          toast.success('Adicionado aos favoritos')
+        }
+      } catch (localError) {
+        console.error('Error saving to localStorage:', localError)
+        toast.error('Erro ao salvar favorito')
       }
     }
   }
 
   const isFavorite = (productId: number) => {
+    if (!productId || isNaN(productId)) return false
     return favorites.includes(productId)
   }
 

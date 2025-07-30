@@ -1,21 +1,7 @@
 // src/hooks/useProducts.ts
 import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
-
-// Configurações do Supabase
-const supabaseUrl = "https://YOUR_SUPABASE_URL"; // Substitua pelo seu URL do Supabase
-const supabaseAnonKey = "YOUR_SUPABASE_ANON_KEY"; // Substitua pela sua chave anônima do Supabase
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-// Tipo para o produto
-export interface Product {
-  id: number;
-  nome: string;
-  descricao: string;
-  preco: number;
-  categoria: string;
-  imagem_url: string;
-}
+import { productService } from "../lib/supabase";
+import type { Product } from "../types";
 
 export const useProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -24,13 +10,18 @@ export const useProducts = () => {
 
   useEffect(() => {
     const fetchProducts = async () => {
-      const { data, error } = await supabase.from("produtos").select("*");
-      if (error) {
-        setError(error.message);
-      } else {
-        setProducts(data as Product[]);
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await productService.getAllProducts();
+        setProducts(data);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Erro ao carregar produtos";
+        setError(errorMessage);
+        console.error("Error in useProducts:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     fetchProducts();

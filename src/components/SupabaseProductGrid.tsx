@@ -9,13 +9,14 @@ import {
   Download,
   Star,
 } from "lucide-react";
-import { productService, type Product } from "../lib/supabase";
+import { productService } from "../lib/supabase";
+import type { Product } from "../types";
+import { formatPrice } from "../lib/utils";
 import { useAuth } from "../contexts/AuthContext";
 import { useFavorites } from "../contexts/FavoritesContext";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Select } from "./ui/Select";
-// ... (imports continuam os mesmos)
 
 interface SupabaseProductGridProps {
   showFilter?: boolean;
@@ -90,14 +91,13 @@ const SupabaseProductGrid: React.FC<SupabaseProductGridProps> = ({
     }
 
     filtered.sort((a, b) => {
-      const getPreco = (p: any) =>
-        typeof p.preco === "string" ? parseFloat(p.preco) || 0 : p.preco || 0;
+      const getPrice = (p: Product) => p.price || 0;
 
       switch (sortBy) {
         case "preco-low":
-          return getPreco(a) - getPreco(b);
+          return getPrice(a) - getPrice(b);
         case "preco-high":
-          return getPreco(b) - getPreco(a);
+          return getPrice(b) - getPrice(a);
         case "name":
           return a.name.localeCompare(b.name);
         default:
@@ -106,16 +106,6 @@ const SupabaseProductGrid: React.FC<SupabaseProductGridProps> = ({
     });
 
     setFilteredProducts(filtered);
-  };
-
-  const formatpreco = (preco: number | string | null | undefined) => {
-    const numericPreco = typeof preco === "string" ? parseFloat(preco) : preco;
-    const validPreco = isNaN(numericPreco as number) ? 0 : numericPreco;
-
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(validPreco ?? 0);
   };
 
   const handleAddToCart = (product: Product, e: React.MouseEvent) => {
@@ -225,7 +215,7 @@ const SupabaseProductGrid: React.FC<SupabaseProductGridProps> = ({
               {/* Imagem e badges */}
               <div className="relative">
                 <img
-                  src={product.image}
+                  src={product.image_url}
                   alt={product.name}
                   className="w-full h-50 object-cover"
                   onError={(e) =>
@@ -275,11 +265,13 @@ const SupabaseProductGrid: React.FC<SupabaseProductGridProps> = ({
                 <div className="mb-6">
                   <div className="flex flex-wrap items-center gap-4">
                     <span className="text-2xl font-bold text-blue-600">
-                      {formatpreco(product.preco)}
+                      {formatPrice(product.price)}
                     </span>
-                    <h5 className="text-lg font-bold text-red-500 line-through">
-                      {product.original_price}
-                    </h5>
+                    {product.original_price && (
+                      <h5 className="text-lg font-bold text-red-500 line-through">
+                        {formatPrice(product.original_price)}
+                      </h5>
+                    )}
                     <div className="flex items-center text-gray-500 text-sm">
                       <Download className="w-4 h-4 mr-1" />
                       <span>Download Digital</span>

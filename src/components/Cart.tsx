@@ -6,8 +6,8 @@ interface CartProps {
   items: CartItem[];
   isOpen: boolean;
   onClose: () => void;
-  onUpdateQuantity: (productId: string, quantity: number) => void;
-  onRemoveItem: (productId: string) => void;
+  onUpdateQuantity: (productId: number, quantity: number) => void;
+  onRemoveItem: (productId: number) => void;
   onCheckout: () => void;
   total: number;
 }
@@ -68,17 +68,17 @@ export const Cart: React.FC<CartProps> = ({
                     className="flex items-center space-x-4 bg-gray-50 p-4 rounded-lg"
                   >
                     <img
-                      src={item.product.image}
-                      alt={item.product.nome}
+                      src={item.product.image_url}
+                      alt={item.product.name}
                       className="w-16 h-16 object-cover rounded-lg"
                     />
 
                     <div className="flex-1">
                       <h3 className="font-semibold text-gray-900 text-sm">
-                        {item.product.nome}
+                        {item.product.name}
                       </h3>
                       <p className="text-indigo-600 font-bold">
-                        {formatPrice(item.product.preco)}
+                        {formatPrice(item.product.price)}
                       </p>
                     </div>
 

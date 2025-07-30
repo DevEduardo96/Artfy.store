@@ -1,17 +1,21 @@
+// Tipos centralizados para o projeto
 export interface Product {
   id: number;
   name: string;
-  price: number | string;
+  description: string;
+  price: number;
+  original_price?: number;
   image_url: string;
   category: string;
-  description: string;
   created_at?: string;
   updated_at?: string;
-  // Legacy fields for backward compatibility
-  nome?: string;
-  preco?: number;
-  image?: string;
-  linkDownload?: string;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface CartItem {
@@ -19,48 +23,39 @@ export interface CartItem {
   quantity: number;
 }
 
-export interface PaymentData {
-  id: string;
-  status: string;
-  qr_code_base64: string;
-  qr_code: string;
-  ticket_url: string;
+export interface Favorite {
+  id: number;
+  user_id: string;
+  product_id: number;
+  created_at: string;
 }
 
-export interface PaymentStatus {
-  status: string;
-  statusDetail: string;
-  paymentId: string;
-  products: Array<{
-    id: string;
-    name: string;
-    downloadUrl: string | null;
-    format: string;
-    fileSize: string;
-    quantity: number;
-    price: number;
-  }>;
-  customerEmail: string;
-  total: number;
-  createdAt: string;
-  updatedAt: string;
-  hasLinks: boolean;
-  linksCount: number;
+// Tipos para respostas da API
+export interface ApiResponse<T> {
+  data: T | null;
+  error: string | null;
 }
 
-export interface DownloadResponse {
-  links: string[];
-  products: Array<{
-    id: string;
-    name: string;
-    downloadUrl: string | null;
-    format: string;
-    fileSize: string;
-    quantity: number;
-    price: number;
-  }>;
-  customerName: string;
+// Tipos para filtros de produtos
+export interface ProductFilters {
+  category?: string;
+  search?: string;
+  sortBy?: 'newest' | 'preco-low' | 'preco-high' | 'name';
+  minPrice?: number;
+  maxPrice?: number;
+}
+
+// Tipos para paginação
+export interface PaginationParams {
+  page: number;
+  limit: number;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
   total: number;
-  downloadedAt: string;
-  expiresIn: string;
+  page: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
 }

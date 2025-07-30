@@ -76,11 +76,11 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({
           {items.map((item) => (
             <div key={item.product.id} className="flex justify-between items-center">
               <div>
-                <span className="text-gray-900">{item.product.nome}</span>
+                <span className="text-gray-900">{item.product.name}</span>
                 <span className="text-gray-500 ml-2">x{item.quantity}</span>
               </div>
               <span className="font-semibold">
-                {formatPrice(item.product.preco * item.quantity)}
+                {formatPrice(item.product.price * item.quantity)}
               </span>
             </div>
           ))}

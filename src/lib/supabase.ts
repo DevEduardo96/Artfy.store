@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { ReactNode } from "react";
+import type { Product } from "../types";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -17,95 +17,117 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
-// Product type based on Supabase table structure
-export interface Product {
-  original_price: ReactNode;
-  preco(preco: any): import("react").ReactNode;
-  id: number;
-  name: string;
-  description: string;
-  price: number | string;
-  image_url: string;
-  category: string;
-}
-
 // Product service functions
 export const productService = {
   // Fetch all products
   async getAllProducts(): Promise<Product[]> {
-    const { data, error } = await supabase
-      .from("produtos")
-      .select("*")
-      .order("id", { ascending: true });
+    try {
+      const { data, error } = await supabase
+        .from("produtos")
+        .select("*")
+        .order("id", { ascending: true });
 
-    if (error) {
-      console.error("Error fetching products:", error);
-      throw new Error("Failed to fetch products");
+      if (error) {
+        console.error("Error fetching products:", error);
+        throw new Error(`Failed to fetch products: ${error.message}`);
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error("Error in getAllProducts:", error);
+      throw error;
     }
-
-    return data || [];
   },
 
   // Fetch products by category
   async getProductsByCategory(category: string): Promise<Product[]> {
-    const { data, error } = await supabase
-      .from("produtos")
-      .select("*")
-      .eq("category", category)
-      .order("id", { ascending: true });
+    try {
+      const { data, error } = await supabase
+        .from("produtos")
+        .select("*")
+        .eq("category", category)
+        .order("id", { ascending: true });
 
-    if (error) {
-      console.error("Error fetching products by category:", error);
-      throw new Error("Failed to fetch products by category");
+      if (error) {
+        console.error("Error fetching products by category:", error);
+        throw new Error(`Failed to fetch products by category: ${error.message}`);
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error("Error in getProductsByCategory:", error);
+      throw error;
     }
-
-    return data || [];
   },
 
   // Search products by name or description
   async searchProducts(query: string): Promise<Product[]> {
-    const { data, error } = await supabase
-      .from("produtos")
-      .select("*")
-      .or(`name.ilike.%${query}%,description.ilike.%${query}%`)
-      .order("id", { ascending: true });
+    try {
+      const { data, error } = await supabase
+        .from("produtos")
+        .select("*")
+        .or(`name.ilike.%${query}%,description.ilike.%${query}%`)
+        .order("id", { ascending: true });
 
-    if (error) {
-      console.error("Error searching products:", error);
-      throw new Error("Failed to search products");
+      if (error) {
+        console.error("Error searching products:", error);
+        throw new Error(`Failed to search products: ${error.message}`);
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error("Error in searchProducts:", error);
+      throw error;
     }
-
-    return data || [];
   },
 
   // Get a single product by ID
   async getProductById(id: number): Promise<Product | null> {
-    const { data, error } = await supabase
-      .from("produtos")
-      .select("*")
-      .eq("id", id)
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from("produtos")
+        .select("*")
+        .eq("id", id)
+        .single();
 
-    if (error) {
-      console.error("Error fetching product:", error);
-      return null;
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // No rows returned
+          return null;
+        }
+        console.error("Error fetching product:", error);
+        throw new Error(`Failed to fetch product: ${error.message}`);
+      }
+
+      return data;
+    } catch (error) {
+      console.error("Error in getProductById:", error);
+      throw error;
     }
-
-    return data;
   },
 
   // Get unique categories
   async getCategories(): Promise<string[]> {
-    const { data, error } = await supabase.from("produtos").select("category");
+    try {
+      const { data, error } = await supabase
+        .from("produtos")
+        .select("category");
 
-    if (error) {
-      console.error("Error fetching categories:", error);
-      throw new Error("Failed to fetch categories");
+      if (error) {
+        console.error("Error fetching categories:", error);
+        throw new Error(`Failed to fetch categories: ${error.message}`);
+      }
+
+      // Extract unique categories
+      const uniqueCategories = new Set(data?.map((item) => item.category) || []);
+      const categories = Array.from(uniqueCategories);
+      return categories.filter(Boolean);
+    } catch (error) {
+      console.error("Error in getCategories:", error);
+      throw error;
     }
-
-    // Extract unique categories
-    const uniqueCategories = new Set(data?.map((item) => item.category) || []);
-    const categories = Array.from(uniqueCategories);
-    return categories.filter(Boolean);
   },
 };
+
+// Re-export the Product type for convenience
+export type { Product };

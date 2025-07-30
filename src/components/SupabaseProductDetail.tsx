@@ -7,8 +7,12 @@ import {
   Share2,
   Loader2,
   CheckCircle,
+  Download,
 } from "lucide-react";
-import { productService, type Product } from "../lib/supabase";
+import { productService } from "../lib/supabase";
+import type { Product } from "../types";
+import { formatPrice, shareContent } from "../lib/utils";
+import { usePayments } from "../hooks/usePayments";
 import { Button } from "./ui/Button";
 
 interface SupabaseProductDetailProps {
@@ -27,12 +31,23 @@ export const SupabaseProductDetail: React.FC<SupabaseProductDetailProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
+  const [hasPurchased, setHasPurchased] = useState(false);
+  const [downloadLinks, setDownloadLinks] = useState<string[]>([]);
+  const [checkingPurchase, setCheckingPurchase] = useState(false);
+
+  const { hasUserPurchasedProduct, getProductDownloadLinks } = usePayments();
 
   useEffect(() => {
     if (productId) {
       loadProduct(productId);
     }
   }, [productId]);
+
+  useEffect(() => {
+    if (product && productId) {
+      checkPurchaseStatus();
+    }
+  }, [product, productId]);
 
   const loadProduct = async (id: number) => {
     try {
@@ -54,18 +69,23 @@ export const SupabaseProductDetail: React.FC<SupabaseProductDetailProps> = ({
     }
   };
 
-  const formatpreco = (preco: number | string | null | undefined) => {
-    // Convert to number and handle edge cases
-    const numericpreco = typeof preco === "string" ? parseFloat(preco) : preco;
-    const validpreco =
-      typeof numericpreco === "number" && !isNaN(numericpreco)
-        ? numericpreco
-        : 0;
+  const checkPurchaseStatus = async () => {
+    if (!productId) return;
 
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(validpreco);
+    try {
+      setCheckingPurchase(true);
+      const purchased = await hasUserPurchasedProduct(productId);
+      setHasPurchased(purchased);
+
+      if (purchased) {
+        const links = await getProductDownloadLinks(productId);
+        setDownloadLinks(links);
+      }
+    } catch (err) {
+      console.error("Error checking purchase status:", err);
+    } finally {
+      setCheckingPurchase(false);
+    }
   };
 
   const handleAddToCart = () => {
@@ -77,21 +97,26 @@ export const SupabaseProductDetail: React.FC<SupabaseProductDetailProps> = ({
   };
 
   const handleShare = async () => {
-    if (navigator.share && product) {
-      try {
-        await navigator.share({
-          title: product.name,
-          text: product.description,
-          url: window.location.href,
-        });
-      } catch (err) {
+    if (product) {
+      const success = await shareContent({
+        title: product.name,
+        text: product.description,
+        url: window.location.href,
+      });
+      
+      if (!success) {
         // Fallback to clipboard
-        navigator.clipboard.writeText(window.location.href);
+        try {
+          await navigator.clipboard.writeText(window.location.href);
+        } catch (err) {
+          console.error("Error copying to clipboard:", err);
+        }
       }
-    } else {
-      // Fallback to clipboard
-      navigator.clipboard.writeText(window.location.href);
     }
+  };
+
+  const handleDownload = (link: string) => {
+    window.open(link, '_blank');
   };
 
   if (loading) {
@@ -147,7 +172,7 @@ export const SupabaseProductDetail: React.FC<SupabaseProductDetailProps> = ({
           <div className="space-y-4">
             <div className="relative bg-white rounded-2xl overflow-hidden shadow-lg">
               <img
-                src={product.image}
+                src={product.image_url}
                 alt={product.name || "Produto"}
                 className="w-full h-96 object-cover"
                 onError={(e) => {
@@ -161,6 +186,14 @@ export const SupabaseProductDetail: React.FC<SupabaseProductDetailProps> = ({
                   {product.category}
                 </span>
               </div>
+              {hasPurchased && (
+                <div className="absolute top-4 right-4">
+                  <span className="bg-green-600 text-white text-sm px-3 py-1 rounded-full flex items-center">
+                    <CheckCircle className="w-4 h-4 mr-1" />
+                    Comprado
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -187,11 +220,16 @@ export const SupabaseProductDetail: React.FC<SupabaseProductDetailProps> = ({
               </div>
             </div>
 
-            {/* preco */}
+            {/* Price */}
             <div className="border-t border-b border-gray-200 py-6">
               <div className="text-4xl font-bold text-blue-600 mb-2">
-                {formatpreco(product.preco)}
+                {formatPrice(product.price)}
               </div>
+              {product.original_price && (
+                <div className="text-lg text-red-500 line-through mb-2">
+                  {formatPrice(product.original_price)}
+                </div>
+              )}
               <p className="text-gray-600">
                 Produto digital • Download imediato
               </p>
@@ -228,45 +266,90 @@ export const SupabaseProductDetail: React.FC<SupabaseProductDetailProps> = ({
               </ul>
             </div>
 
+            {/* Download Links (if purchased) */}
+            {hasPurchased && downloadLinks.length > 0 && (
+              <div className="border-t border-gray-200 pt-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  Links de Download
+                </h3>
+                <div className="space-y-2">
+                  {downloadLinks.map((link, index) => (
+                    <Button
+                      key={index}
+                      onClick={() => handleDownload(link)}
+                      variant="outline"
+                      className="w-full justify-start"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Download {index + 1}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Actions */}
             <div className="space-y-4">
-              <div className="flex space-x-3">
-                <Button
-                  onClick={handleAddToCart}
-                  disabled={addedToCart}
-                  className="flex-1 h-12 text-lg"
-                >
-                  {addedToCart ? (
-                    <>
-                      <CheckCircle className="w-5 h-5 mr-2" />
-                      Adicionado!
-                    </>
-                  ) : (
-                    <>
-                      <ShoppingCart className="w-5 h-5 mr-2" />
-                      Adicionar ao Carrinho
-                    </>
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsWishlisted(!isWishlisted)}
-                  className="h-12 px-4"
-                >
-                  <Heart
-                    className={`w-5 h-5 ${
-                      isWishlisted ? "fill-current text-red-500" : ""
-                    }`}
-                  />
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleShare}
-                  className="h-12 px-4"
-                >
-                  <Share2 className="w-5 h-5" />
-                </Button>
-              </div>
+              {!hasPurchased ? (
+                <div className="flex space-x-3">
+                  <Button
+                    onClick={handleAddToCart}
+                    disabled={addedToCart}
+                    className="flex-1 h-12 text-lg"
+                  >
+                    {addedToCart ? (
+                      <>
+                        <CheckCircle className="w-5 h-5 mr-2" />
+                        Adicionado!
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingCart className="w-5 h-5 mr-2" />
+                        Adicionar ao Carrinho
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsWishlisted(!isWishlisted)}
+                    className="h-12 px-4"
+                  >
+                    <Heart
+                      className={`w-5 h-5 ${
+                        isWishlisted ? "fill-current text-red-500" : ""
+                      }`}
+                    />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleShare}
+                    className="h-12 px-4"
+                  >
+                    <Share2 className="w-5 h-5" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex space-x-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsWishlisted(!isWishlisted)}
+                    className="h-12 px-4"
+                  >
+                    <Heart
+                      className={`w-5 h-5 ${
+                        isWishlisted ? "fill-current text-red-500" : ""
+                      }`}
+                    />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleShare}
+                    className="h-12 px-4"
+                  >
+                    <Share2 className="w-5 h-5" />
+                  </Button>
+                </div>
+              )}
 
               <div className="text-center">
                 <p className="text-sm text-gray-500">

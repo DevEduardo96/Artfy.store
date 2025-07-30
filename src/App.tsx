@@ -13,10 +13,9 @@ import { CheckoutForm } from "./components/CheckoutForm";
 import { PaymentStatus } from "./components/PaymentStatus";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { useCart } from "./hooks/useCart";
-import { useState } from "react";
+import { useState, createContext, useContext } from "react";
 import { api } from "./services/api";
-import { PaymentData } from "./types";
-import type { Product } from "./lib/supabase";
+import type { Product, PaymentData } from "./types"; // Assuming types are defined here
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
 import { Favorites } from "./pages/Favorites";
@@ -31,20 +30,16 @@ import { WhatsAppButton } from "./components/WhatsAppButton";
 import ScrollToTop from "./components/ScrollToTo";
 import { AuthProvider } from "./contexts/AuthContext";
 import { FavoritesProvider } from "./contexts/FavoritesContext";
+import toast from "react-hot-toast";
+
+// Payment Data Context
+const PaymentDataContext = createContext<{
+  paymentData: PaymentData | null;
+  setPaymentData: (data: PaymentData | null) => void;
+}>({ paymentData: null, setPaymentData: () => {} });
 
 function AppContent() {
   const navigate = useNavigate();
-
-  const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
-  const [isCartOpen, setIsCartOpen] = useState(false);
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-
-  // Product detail states
-  const [selectedProductId, setSelectedProductId] = useState<number | null>(
-    null
-  );
-  const [showProductDetails, setShowProductDetails] = useState(false);
-
   const {
     items,
     addToCart,
@@ -54,29 +49,14 @@ function AppContent() {
     getTotal,
     getItemCount,
   } = useCart();
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [showProductDetails, setShowProductDetails] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState<number | null>(
+    null
+  );
+  const { paymentData, setPaymentData } = useContext(PaymentDataContext);
 
-  const handlePaymentSubmit = async (customerData: {
-    nomeCliente: string;
-    email: string;
-  }) => {
-    setIsProcessingPayment(true);
-    try {
-      const payment = await api.createPayment({
-        carrinho: items,
-        nomeCliente: customerData.nomeCliente,
-        email: customerData.email,
-        total: getTotal(),
-      });
-      setPaymentData(payment);
-      navigate("/pagamento");
-    } catch (error) {
-      alert("Erro ao processar pagamento.");
-    } finally {
-      setIsProcessingPayment(false);
-    }
-  };
-
-  // Product detail functions
   const handleShowProductDetails = (product: Product) => {
     setSelectedProductId(product.id);
     setShowProductDetails(true);
@@ -85,6 +65,31 @@ function AppContent() {
   const handleBackFromDetails = () => {
     setShowProductDetails(false);
     setSelectedProductId(null);
+  };
+
+  const handlePaymentSubmit = async (customerData: {
+    nomeCliente: string;
+    email: string;
+  }) => {
+    setIsProcessingPayment(true);
+    try {
+      const payment = await api.createPayment({
+        carrinho: items.map(item => ({
+          id: item.product.id,
+          name: item.product.name,
+          quantity: item.quantity
+        })),
+        nomeCliente: customerData.nomeCliente,
+        email: customerData.email,
+        total: getTotal(),
+      });
+      setPaymentData(payment);
+      navigate("/pagamento");
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao processar pagamento.");
+    } finally {
+      setIsProcessingPayment(false);
+    }
   };
 
   // Show product details if selected
@@ -123,7 +128,6 @@ function AppContent() {
         cartItemCount={getItemCount()}
         onCartClick={() => setIsCartOpen(true)}
       />
-
       <main className="pb-8">
         <ScrollToTop />
         <Routes>
@@ -142,7 +146,6 @@ function AppContent() {
               </>
             }
           />
-
           <Route
             path="/produtos"
             element={
@@ -154,10 +157,8 @@ function AppContent() {
               </div>
             }
           />
-
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-
           <Route
             path="/favorites"
             element={
@@ -169,7 +170,6 @@ function AppContent() {
               </ProtectedRoute>
             }
           />
-
           <Route
             path="/checkout"
             element={
@@ -181,7 +181,6 @@ function AppContent() {
               />
             }
           />
-
           <Route
             path="/pagamento"
             element={
@@ -195,21 +194,19 @@ function AppContent() {
                   }}
                 />
               ) : (
-                <p>Pagamento não encontrado.</p>
+                <p>Pagamento não encontrado. Redirecionando...</p>
               )
             }
-          />
-
+          />{" "}
+          {/* Redirect if paymentData is null */}
           <Route path="/meu-site" element={<Sites />} />
           <Route path="/suporte" element={<Suporte />} />
           <Route path="/sobre" element={<Sobre />} />
           <Route path="/terms" element={<TermsOfService />} />
-          <Route path="/footer" element={<Footer />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
         </Routes>
         <WhatsAppButton />
       </main>
-
       <Cart
         items={items}
         isOpen={isCartOpen}
@@ -227,20 +224,21 @@ function AppContent() {
 }
 
 function App() {
+  const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
+
   return (
     <Router>
       <AuthProvider>
         <FavoritesProvider>
-          <AppContent />
+          <PaymentDataContext.Provider value={{ paymentData, setPaymentData }}>
+            <AppContent />
+          </PaymentDataContext.Provider>
           <Footer />
           <Toaster
             position="bottom-right"
             toastOptions={{
               duration: 3000,
-              style: {
-                background: "#363636",
-                color: "#fff",
-              },
+              style: { background: "#363636", color: "#fff" },
             }}
           />
         </FavoritesProvider>

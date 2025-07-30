@@ -32,12 +32,12 @@ export const useCart = () => {
     });
   }, []);
 
-  const removeFromCart = useCallback((productId: string) => {
+  const removeFromCart = useCallback((productId: number) => {
     setItems((prev) => prev.filter((item) => item.product.id !== productId));
   }, []);
 
   const updateQuantity = useCallback(
-    (productId: string, quantity: number) => {
+    (productId: number, quantity: number) => {
       if (quantity <= 0) {
         removeFromCart(productId);
         return;
@@ -58,7 +58,7 @@ export const useCart = () => {
 
   const getTotal = useCallback(() => {
     return items.reduce(
-      (total, item) => total + item.product.preco * item.quantity,
+      (total, item) => total + item.product.price * item.quantity,
       0
     );
   }, [items]);

@@ -24,12 +24,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     let isMounted = true;
 
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!isMounted) return;
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    const getInitialSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (!isMounted) return;
+        
+        if (error) {
+          console.error("Error getting initial session:", error);
+        }
+        
+        setSession(session);
+        setUser(session?.user ?? null);
+      } catch (error) {
+        console.error("Error in getInitialSession:", error);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    getInitialSession();
 
     // Listen for auth state changes
     const {
@@ -51,21 +67,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password });
-    return { error };
+    try {
+      if (!email || !password) {
+        return { error: { message: "Email e senha são obrigatórios" } };
+      }
+
+      const { error } = await supabase.auth.signUp({ email, password });
+      return { error };
+    } catch (error) {
+      console.error("Error in signUp:", error);
+      return { error: { message: "Erro interno ao criar conta" } };
+    }
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { error };
+    try {
+      if (!email || !password) {
+        return { error: { message: "Email e senha são obrigatórios" } };
+      }
+
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      return { error };
+    } catch (error) {
+      console.error("Error in signIn:", error);
+      return { error: { message: "Erro interno ao fazer login" } };
+    }
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    return { error };
+    try {
+      const { error } = await supabase.auth.signOut();
+      return { error };
+    } catch (error) {
+      console.error("Error in signOut:", error);
+      return { error: { message: "Erro interno ao fazer logout" } };
+    }
   };
 
   return (
