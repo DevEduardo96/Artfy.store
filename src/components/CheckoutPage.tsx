@@ -16,18 +16,16 @@ export const CheckoutPage: React.FC = () => {
     try {
       setIsLoading(true);
 
-      // Validação do carrinho
       if (!cartItems || cartItems.length === 0) {
         throw new Error('Carrinho vazio. Adicione produtos antes de finalizar a compra.');
       }
 
-      // Validação da estrutura dos dados do carrinho
-      const validItems = cartItems.filter(item => 
-        item && 
-        item.product && 
-        typeof item.product.id === 'number' && 
-        typeof item.product.name === 'string' && 
-        typeof item.quantity === 'number' && 
+      const validItems = cartItems.filter(item =>
+        item &&
+        item.product &&
+        typeof item.product.id === 'number' &&
+        typeof item.product.name === 'string' &&
+        typeof item.quantity === 'number' &&
         item.quantity > 0
       );
 
@@ -35,27 +33,22 @@ export const CheckoutPage: React.FC = () => {
         throw new Error('Dados do carrinho inválidos. Recarregue a página e tente novamente.');
       }
 
-      // Mapeia os dados do carrinho para o formato esperado
-      const carrinhoFormatado = validItems.map((item) => ({
-        id: item.product.id,
-        name: item.product.name,
+      const carrinhoFormatado = validItems.map(item => ({
+        product: {
+          id: item.product.id,
+          name: item.product.name
+        },
         quantity: item.quantity
       }));
 
-      console.log('Dados do pagamento sendo enviados:', {
+      console.log('Enviando dados para pagamento:', {
         carrinho: carrinhoFormatado,
         nomeCliente: formData.nomeCliente,
         email: formData.email,
         total: totalAmount
       });
 
-      // Verifica se o servidor está online antes de tentar criar o pagamento
-      try {
-        await api.wakeUpServer();
-      } catch (serverError) {
-        console.warn('Servidor pode estar offline:', serverError);
-        // Continua mesmo assim, pois o wakeUpServer pode falhar mas o pagamento pode funcionar
-      }
+      await api.wakeUpServer();
 
       const response = await api.createPayment({
         carrinho: carrinhoFormatado,
@@ -64,15 +57,20 @@ export const CheckoutPage: React.FC = () => {
         total: totalAmount
       });
 
-      console.log('Resposta do servidor:', response);
-      setPaymentData(response); // Contém qrCodeBase64, paymentId etc.
+      console.log('Resposta recebida:', response);
+
+      // Salva o paymentId no localStorage (para usar na página de download)
+      if (response?.id) {
+        localStorage.setItem('artfyPaymentId', response.id);
+      }
+
+      setPaymentData(response);
 
     } catch (err) {
       console.error('Erro ao criar pagamento:', err);
-      
-      // Melhor tratamento de erro
+
       let errorMessage = 'Erro ao gerar QR Code do Pix. Tente novamente.';
-      
+
       if (err instanceof Error) {
         if (err.message.includes('Carrinho vazio')) {
           errorMessage = err.message;
@@ -82,7 +80,7 @@ export const CheckoutPage: React.FC = () => {
           errorMessage = 'Servidor temporariamente indisponível. Tente novamente em alguns minutos.';
         }
       }
-      
+
       alert(errorMessage);
     } finally {
       setIsLoading(false);

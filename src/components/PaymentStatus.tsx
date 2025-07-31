@@ -266,9 +266,9 @@ export const PaymentStatus: React.FC<PaymentStatusProps> = ({
                       {product.price?.toFixed(2)}
                     </p>
                   </div>
-                  {product.downloadUrl ? (
+                  {product.download_url ? (
                     <a
-                      href={product.downloadUrl}
+                      href={product.download_url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
