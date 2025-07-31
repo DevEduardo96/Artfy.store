@@ -59,3 +59,73 @@ export interface PaginatedResponse<T> {
   hasNext: boolean;
   hasPrev: boolean;
 }
+
+// Tipos específicos para integração com o backend
+export interface PaymentData {
+  id: string;
+  status: string;
+  email_cliente: string;
+  nome_cliente: string;
+  valor: number;
+  links_download: string[];
+  produtos: Product[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PaymentStatus {
+  status: string;
+  paymentId: string;
+}
+
+export interface DownloadResponse {
+  links: string[];
+  products: Product[];
+  customerName: string;
+  total: number;
+  downloadedAt: string;
+  expiresIn: string;
+}
+
+export interface CreatePaymentRequest {
+  carrinho: Array<{
+    id: number;
+    name: string;
+    quantity: number;
+  }>;
+  nomeCliente: string;
+  email: string;
+  total: number;
+}
+
+// Tipos para autenticação
+export interface AuthUser {
+  id: string;
+  email: string;
+  created_at: string;
+}
+
+export interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+export interface RegisterData {
+  email: string;
+  password: string;
+  confirmPassword: string;
+}
+
+// Tipos para notificações e feedback
+export interface ToastMessage {
+  type: 'success' | 'error' | 'warning' | 'info';
+  message: string;
+  duration?: number;
+}
+
+// Tipos para configurações da aplicação
+export interface AppConfig {
+  apiBaseUrl: string;
+  supabaseUrl: string;
+  environment: 'development' | 'production' | 'staging';
+}
