@@ -29,6 +29,9 @@ export const PaymentStatus: React.FC<PaymentStatusProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  
+  // Verifica se é um pagamento mock (modo demonstração)
+  const isMockPayment = paymentData.id.startsWith('mock_');
 
   const checkPaymentStatus = async () => {
     try {
@@ -158,6 +161,24 @@ export const PaymentStatus: React.FC<PaymentStatusProps> = ({
 
   return (
     <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
+      {/* Demo Mode Banner */}
+      {isMockPayment && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center space-x-2">
+            <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-sm font-bold">i</span>
+            </div>
+            <div>
+              <h4 className="font-semibold text-blue-900 mb-1">Modo Demonstração</h4>
+              <p className="text-blue-800 text-sm">
+                O servidor de pagamentos está temporariamente indisponível. 
+                Este é um modo de demonstração para testar a interface.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Status Header */}
       <div className="text-center mb-8">
         <div className="flex justify-center mb-4">{getStatusIcon()}</div>
@@ -168,51 +189,55 @@ export const PaymentStatus: React.FC<PaymentStatusProps> = ({
       </div>
 
       {/* QR Code Section - Mostrar apenas se não aprovado */}
-      {status?.status !== "approved" && (
+      {status?.status !== "approved" && paymentData.qr_code_base64 && (
         <div className="bg-gray-50 rounded-lg p-6 mb-8">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
-            Escaneie o QR Code para pagar
+            {isMockPayment ? "QR Code de Demonstração" : "Escaneie o QR Code para pagar"}
           </h3>
 
           <div className="flex flex-col items-center space-y-4">
             <div className="bg-white p-4 rounded-lg shadow-sm">
               <img
-                src={`data:image/png;base64,${paymentData.qr_code_base64}`}
+                src={paymentData.qr_code_base64.startsWith('data:') ? paymentData.qr_code_base64 : `data:image/png;base64,${paymentData.qr_code_base64}`}
                 alt="QR Code PIX"
                 className="w-64 h-64"
               />
             </div>
 
-            <div className="w-full">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Ou copie o código PIX:
-              </label>
-              <div className="flex space-x-2">
-                <input
-                  type="text"
-                  value={paymentData.qr_code}
-                  readOnly
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm"
-                />
-                <button
-                  onClick={() => copyToClipboard(paymentData.qr_code)}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center space-x-2"
-                >
-                  <Copy className="w-4 h-4" />
-                  <span>{copied ? "Copiado!" : "Copiar"}</span>
-                </button>
+            {paymentData.qr_code && (
+              <div className="w-full">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Ou copie o código PIX:
+                </label>
+                <div className="flex space-x-2">
+                  <input
+                    type="text"
+                    value={paymentData.qr_code}
+                    readOnly
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm"
+                  />
+                  <button
+                    onClick={() => copyToClipboard(paymentData.qr_code!)}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center space-x-2"
+                  >
+                    <Copy className="w-4 h-4" />
+                    <span>{copied ? "Copiado!" : "Copiar"}</span>
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
-            <a
-              href={paymentData.ticket_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center space-x-2 text-indigo-600 hover:text-indigo-700 transition-colors"
-            >
-              <ExternalLink className="w-4 h-4" />
-              <span>Abrir no app do banco</span>
-            </a>
+            {paymentData.ticket_url && (
+              <a
+                href={paymentData.ticket_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center space-x-2 text-indigo-600 hover:text-indigo-700 transition-colors"
+              >
+                <ExternalLink className="w-4 h-4" />
+                <span>Abrir no app do banco</span>
+              </a>
+            )}
           </div>
         </div>
       )}

@@ -71,6 +71,9 @@ export interface PaymentData {
   produtos: Product[];
   created_at: string;
   updated_at: string;
+  qr_code_base64?: string;
+  qr_code?: string;
+  ticket_url?: string;
 }
 
 export interface PaymentStatus {
