@@ -1,12 +1,12 @@
 import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation } from 'wouter'
 import { Eye, EyeOff, Mail, Lock, User, Loader2 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 
 export const Register: React.FC = () => {
-  const navigate = useNavigate()
+  const [location, setLocation] = useLocation()
   const { signUp } = useAuth()
   const [formData, setFormData] = useState({
     email: '',
@@ -45,7 +45,7 @@ export const Register: React.FC = () => {
       } else {
         setSuccess('Conta criada com sucesso! Verifique seu email para confirmar.')
         setTimeout(() => {
-          navigate('/login')
+          setLocation('/login')
         }, 3000)
       }
     } catch (err) {

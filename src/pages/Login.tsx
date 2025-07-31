@@ -1,12 +1,12 @@
 import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation } from 'wouter'
 import { Eye, EyeOff, Mail, Lock, Loader2 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 
 export const Login: React.FC = () => {
-  const navigate = useNavigate()
+  const [location, setLocation] = useLocation()
   const { signIn } = useAuth()
   const [formData, setFormData] = useState({
     email: '',
@@ -27,7 +27,7 @@ export const Login: React.FC = () => {
       if (error) {
         setError(error.message)
       } else {
-        navigate('/')
+        setLocation('/')
       }
     } catch (err) {
       setError('Ocorreu um erro inesperado')

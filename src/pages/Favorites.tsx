@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Heart, ShoppingCart, ArrowLeft } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link } from 'wouter'
 import { useAuth } from '../contexts/AuthContext'
 import { useFavorites } from '../contexts/FavoritesContext'
 import { productService, type Product } from '../lib/supabase'

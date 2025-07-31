@@ -1,6 +1,6 @@
 import React from "react";
 import { Mail, Phone, MapPin, FileText } from "lucide-react";
-import { Link } from "react-router";
+import { Link } from "wouter";
 
 const Footer: React.FC = () => {
   return (

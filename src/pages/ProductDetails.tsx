@@ -67,7 +67,7 @@ export const ProductDetails: React.FC<ProductDetailsProps> = ({
   };
 
   // Para produtos que podem ter múltiplas imagens (usar a mesma imagem como fallback)
-  const images = [product.image, product.image, product.image];
+  const images = [product.image_url, product.image_url, product.image_url];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -91,7 +91,7 @@ export const ProductDetails: React.FC<ProductDetailsProps> = ({
             <div className="relative bg-white rounded-2xl overflow-hidden shadow-lg">
               <img
                 src={images[selectedImage]}
-                alt={product.nome}
+                alt={product.name}
                 className="w-full h-96 object-cover"
               />
               <button className="absolute top-4 right-4 p-2 bg-white bg-opacity-90 rounded-full hover:bg-opacity-100 transition-all">
@@ -157,7 +157,7 @@ export const ProductDetails: React.FC<ProductDetailsProps> = ({
               </div>
 
               <h1 className="text-3xl font-bold text-gray-900 mb-4">
-                {product.nome}
+                {product.name}
               </h1>
 
               <div className="flex items-center space-x-4 mb-6">
@@ -174,7 +174,7 @@ export const ProductDetails: React.FC<ProductDetailsProps> = ({
               </div>
 
               <div className="text-4xl font-bold text-indigo-600 mb-6">
-                {formatPrice(product.preco)}
+                {formatPrice(product.price)}
               </div>
 
               <button

@@ -1,9 +1,4 @@
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  useNavigate,
-} from "react-router-dom";
+import { Router, Route, Switch, useLocation } from "wouter";
 import { Header } from "./components/Header";
 import { Cart } from "./components/Cart";
 import Hero from "./components/Hero";
@@ -15,7 +10,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { useCart } from "./hooks/useCart";
 import { useState, createContext, useContext } from "react";
 import { api } from "./services/api";
-import type { Product, PaymentData } from "./types"; // Assuming types are defined here
+import type { Product, PaymentData } from "./types";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
 import { Favorites } from "./pages/Favorites";
@@ -39,7 +34,7 @@ const PaymentDataContext = createContext<{
 }>({ paymentData: null, setPaymentData: () => {} });
 
 function AppContent() {
-  const navigate = useNavigate();
+  const [location, setLocation] = useLocation();
   const {
     items,
     addToCart,
@@ -84,7 +79,7 @@ function AppContent() {
         total: getTotal(),
       });
       setPaymentData(payment);
-      navigate("/pagamento");
+      setLocation("/pagamento");
     } catch (error: any) {
       toast.error(error.message || "Erro ao processar pagamento.");
     } finally {
@@ -113,7 +108,7 @@ function AppContent() {
           onRemoveItem={removeFromCart}
           onCheckout={() => {
             setIsCartOpen(false);
-            navigate("/checkout");
+            setLocation("/checkout");
           }}
           total={getTotal()}
         />
@@ -130,81 +125,77 @@ function AppContent() {
       />
       <main className="pb-8">
         <ScrollToTop />
-        <Routes>
-          <Route
-            path="/"
-            element={
-              <>
-                <Hero />
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                  <SupabaseProductGrid
-                    onAddToCart={addToCart}
-                    onProductClick={handleShowProductDetails}
-                    showFilter={false}
-                  />
-                </div>
-              </>
-            }
-          />
-          <Route
-            path="/produtos"
-            element={
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <SupabaseProductGrid
-                  onAddToCart={addToCart}
-                  onProductClick={handleShowProductDetails}
-                />
-              </div>
-            }
-          />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route
-            path="/favorites"
-            element={
-              <ProtectedRoute>
-                <Favorites
-                  onAddToCart={addToCart}
-                  onProductClick={handleShowProductDetails}
-                />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/checkout"
-            element={
-              <CheckoutForm
-                items={items}
-                total={getTotal()}
-                onSubmit={handlePaymentSubmit}
-                isLoading={isProcessingPayment}
+        <Switch>
+          <Route path="/">
+            <Hero />
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+              <SupabaseProductGrid
+                onAddToCart={addToCart}
+                onProductClick={handleShowProductDetails}
+                showFilter={false}
               />
-            }
-          />
-          <Route
-            path="/pagamento"
-            element={
-              paymentData ? (
-                <PaymentStatus
-                  paymentData={paymentData}
-                  onBack={() => {
-                    setPaymentData(null);
-                    clearCart();
-                    navigate("/");
-                  }}
-                />
-              ) : (
-                <p>Pagamento não encontrado. Redirecionando...</p>
-              )
-            }
-          />{" "}
-          {/* Redirect if paymentData is null */}
-          <Route path="/meu-site" element={<Sites />} />
-          <Route path="/suporte" element={<Suporte />} />
-          <Route path="/sobre" element={<Sobre />} />
-          <Route path="/terms" element={<TermsOfService />} />
-          <Route path="/privacy" element={<PrivacyPolicy />} />
-        </Routes>
+            </div>
+          </Route>
+          <Route path="/produtos">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+              <SupabaseProductGrid
+                onAddToCart={addToCart}
+                onProductClick={handleShowProductDetails}
+              />
+            </div>
+          </Route>
+          <Route path="/login">
+            <Login />
+          </Route>
+          <Route path="/register">
+            <Register />
+          </Route>
+          <Route path="/favorites">
+            <ProtectedRoute>
+              <Favorites
+                onAddToCart={addToCart}
+                onProductClick={handleShowProductDetails}
+              />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/checkout">
+            <CheckoutForm
+              items={items}
+              total={getTotal()}
+              onSubmit={handlePaymentSubmit}
+              isLoading={isProcessingPayment}
+            />
+          </Route>
+          <Route path="/pagamento">
+            {paymentData ? (
+              <PaymentStatus
+                paymentData={paymentData}
+                onBack={() => {
+                  setPaymentData(null);
+                  clearCart();
+                  setLocation("/");
+                }}
+              />
+            ) : (
+              <p>Pagamento não encontrado. Redirecionando...</p>
+            )}
+          </Route>
+          <Route path="/meu-site">
+            <Sites />
+          </Route>
+          <Route path="/suporte">
+            <Suporte />
+          </Route>
+          <Route path="/sobre">
+            <Sobre />
+          </Route>
+          <Route path="/terms">
+            <TermsOfService />
+          </Route>
+          <Route path="/privacy">
+            <PrivacyPolicy />
+          </Route>
+        </Switch>
         <WhatsAppButton />
       </main>
       <Cart
@@ -215,7 +206,7 @@ function AppContent() {
         onRemoveItem={removeFromCart}
         onCheckout={() => {
           setIsCartOpen(false);
-          navigate("/checkout");
+          setLocation("/checkout");
         }}
         total={getTotal()}
       />
