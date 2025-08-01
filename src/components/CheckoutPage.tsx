@@ -59,7 +59,7 @@ export const CheckoutPage: React.FC = () => {
 
       console.log('Resposta recebida:', response);
 
-      // Salva o paymentId no localStorage (para reuso se necessário)
+      // Salva o paymentId no localStorage (para usar na página de download)
       if (response?.id) {
         localStorage.setItem('artfyPaymentId', response.id);
       }
@@ -94,11 +94,7 @@ export const CheckoutPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-100 py-10 px-4 sm:px-6 lg:px-8">
       {paymentData ? (
-        <PaymentStatus
-          paymentId={String(paymentData.id)} 
-          qrCodeBase64={paymentData.qr_code_base64} 
-          onBack={handleBack}
-        />
+        <PaymentStatus paymentData={paymentData} onBack={handleBack} />
       ) : (
         <CheckoutForm
           items={cartItems}
