@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { CheckCircle, Clock, XCircle, RefreshCw, Download } from "lucide-react";
-import { api } from "../services/api"; // para consultar status do pagamento
-import { supabase } from "../lib/supabase"; // cliente Supabase
+import { api } from "../services/api";
+import { supabase } from "../lib/supabase";
 
 interface PaymentStatusProps {
-  paymentId: string;       // ID do pagamento
-  qrCodeBase64?: string;   // QR Code opcional
+  paymentId: string;
+  qrCodeBase64?: string;
+  onBack?: () => void;
 }
 
-export const PaymentStatus: React.FC<PaymentStatusProps> = ({ paymentId, qrCodeBase64 }) => {
+export const PaymentStatus: React.FC<PaymentStatusProps> = ({ paymentId, qrCodeBase64, onBack }) => {
   const [status, setStatus] = useState<string>("pending");
   const [downloadLinks, setDownloadLinks] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Consulta status e busca links se aprovado
   const checkPaymentStatus = async () => {
     try {
       const data = await api.getPaymentStatus(paymentId);
@@ -38,9 +38,13 @@ export const PaymentStatus: React.FC<PaymentStatusProps> = ({ paymentId, qrCodeB
 
   useEffect(() => {
     checkPaymentStatus();
-    const interval = setInterval(checkPaymentStatus, 5000);
+    const interval = setInterval(() => {
+      if (status !== "approved") {
+        checkPaymentStatus();
+      }
+    }, 5000);
     return () => clearInterval(interval);
-  }, [paymentId]);
+  }, [paymentId, status]);
 
   const getStatusIcon = () => {
     if (loading) return <RefreshCw className="w-8 h-8 text-blue-500 animate-spin" />;
@@ -90,6 +94,15 @@ export const PaymentStatus: React.FC<PaymentStatusProps> = ({ paymentId, qrCodeB
 
       {status === "approved" && downloadLinks.length === 0 && (
         <p className="text-gray-600 mt-4">Nenhum link disponível ainda. Aguarde um momento.</p>
+      )}
+
+      {onBack && (
+        <button
+          onClick={onBack}
+          className="mt-6 w-full bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg"
+        >
+          Voltar à Loja
+        </button>
       )}
     </div>
   );
