@@ -31,7 +31,7 @@ export const PaymentStatus: React.FC<PaymentStatusProps> = ({
   const [copied, setCopied] = useState(false);
   
   // Verifica se é um pagamento mock (modo demonstração)
-  const isMockPayment = paymentData.id.startsWith('mock_');
+  const isMockPayment = typeof paymentData.id === 'string' && paymentData.id.startsWith('mock_');
 
   const checkPaymentStatus = async () => {
     try {
