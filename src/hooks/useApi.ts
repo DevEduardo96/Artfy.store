@@ -101,7 +101,8 @@ export const useApi = () => {
     );
   }, [executeApiCall]);
 
-  const getPaymentStatus = useCallback(async (paymentId: string) => {
+  // 🔧 CORREÇÃO: Aceita string | number para compatibilidade com IDs do Mercado Pago
+  const getPaymentStatus = useCallback(async (paymentId: string | number) => {
     return executeApiCall(
       () => api.getPaymentStatus(paymentId),
       setPaymentStatus,
@@ -110,7 +111,8 @@ export const useApi = () => {
     );
   }, [executeApiCall]);
 
-  const getDownloadLinks = useCallback(async (paymentId: string) => {
+  // 🔧 CORREÇÃO: Aceita string | number para compatibilidade com IDs do Mercado Pago
+  const getDownloadLinks = useCallback(async (paymentId: string | number) => {
     return executeApiCall(
       () => api.getDownloadLinks(paymentId),
       setDownloadLinks,
@@ -168,4 +170,4 @@ export const useApi = () => {
     resetPaymentStatus,
     resetDownloadLinks,
   };
-}; 
+};
