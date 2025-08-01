@@ -20,7 +20,7 @@ interface PaymentStatusProps {
   onBack: () => void;
 }
 
-export const PaymentStatus: React.FC<PaymentStatusProps> = ({
+export const PaymentStatus: React.FC<PaymentStatusProps> = async ({
   paymentData,
   onBack,
 }) => {
@@ -62,6 +62,22 @@ export const PaymentStatus: React.FC<PaymentStatusProps> = ({
       setLoading(false);
     }
   };
+
+  const data = await api.getDownloadLinks(paymentId);
+console.log(data.links); // links de download
+
+{data.links.map((link, i) => (
+  <a
+    key={i}
+    href={link}
+    target="_blank"
+    rel="noopener noreferrer"
+    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+  >
+    Baixar arquivo {i + 1}
+  </a>
+))}
+
 
   useEffect(() => {
     checkPaymentStatus();

@@ -9,6 +9,7 @@ export interface Product {
   category: string;
   created_at?: string;
   updated_at?: string;
+  download_url?: string; // <-- novo campo
 }
 
 export interface User {
